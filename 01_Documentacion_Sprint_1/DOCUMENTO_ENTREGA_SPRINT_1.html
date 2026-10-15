@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento Técnico de Entrega — Sprint 1 (LOPSRM / RLOPSRM)</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --primary-light: #1e293b;
+            --accent: #059669;
+            --accent-light: #10b981;
+            --border: #e2e8f0;
+            --bg-card: #ffffff;
+            --bg-page: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.65;
+            color: var(--text-main);
+            background-color: var(--bg-page);
+            max-width: 1050px;
+            margin: 30px auto;
+            padding: 0 25px 60px;
+        }
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 35px 30px;
+            border-radius: 14px;
+            margin-bottom: 35px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+        }
+        .header .meta {
+            color: #94a3b8;
+            font-size: 13px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 15px;
+        }
+        .header .meta span {
+            display: inline-flex;
+            align-items: center;
+        }
+        h2 {
+            color: var(--primary);
+            font-size: 20px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+        h3 {
+            color: var(--primary-light);
+            font-size: 16px;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        p, li {
+            font-size: 14px;
+            color: #334155;
+        }
+        ul, ol {
+            padding-left: 22px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 13px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .badge-pass {
+            background-color: #d1fae5;
+            color: #065f46;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            font-weight: bold;
+            font-size: 11px;
+            display: inline-block;
+        }
+        .card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .card-title {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mermaid {
+            background: white;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            overflow-x: auto;
+            line-height: 1.5;
+        }
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #0f172a;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .highlight-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid var(--accent);
+            padding: 15px 18px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 13.5px;
+        }
+        .caption {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: -10px;
+            margin-bottom: 25px;
+        }
+    </style>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SISTEMA DE CONTROL, SEGUIMIENTO Y FISCALIZACIÓN DE OBRA PÚBLICA</h1>
+        <div style="font-size: 15px; color: #cbd5e1;">Documento de Entrega Formal de Ingeniería — Sprint 1</div>
+        <div class="meta">
+            <span>📚 <strong>Materia:</strong> Análisis y Diseño de Sistemas</span>
+            <span>⚡ <strong>Metodología:</strong> SCRUM</span>
+            <span>⚖️ <strong>Marco Legal:</strong> LOPSRM / RLOPSRM</span>
+            <span>📅 <strong>Fecha:</strong> Octubre 2026</span>
+            <span>📌 <strong>Versión:</strong> 2.0 (Revisión Integral Pre-Sprint 2)</span>
+        </div>
+    </div>
+
+    <h2>1. Resumen Ejecutivo del Sprint 1</h2>
+    <p>El Sprint 1 formaliza la base arquitectónica, el modelo relacional conforme a la LOPSRM (PostgreSQL 16), el backend modular en capas (NestJS + TypeScript), el control de acceso basado en roles (RBAC) y la aplicación web SPA interactiva en React + Vite. Se garantiza la rigurosa separación de funciones impidiendo la autoasignación de privilegios al registrarse.</p>
+
+    <div class="highlight-box">
+        <strong>Pilar Normativo LOPSRM:</strong> Todo usuario que se registra en la plataforma ingresa en estado inactivo y sin rol. Un Administrador debe cotejar su cédula profesional y asignar formalmente uno de los 5 roles reglamentarios antes de que pueda iniciar sesión.
+    </div>
+
+    <h2>2. Historias de Usuario del Sprint 1 (Product Backlog)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Historia de Usuario</th>
+                <th>Rol</th>
+                <th>Prioridad</th>
+                <th>Points</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>US-01</strong></td>
+                <td>Registro Público de Usuario Profesional (Inactivo por defecto)</td>
+                <td>Externo</td>
+                <td>Must Have</td>
+                <td>5 SP</td>
+                <td><span class="badge-pass">TERMINADA</span></td>
+            </tr>
+            <tr>
+                <td><strong>US-02</strong></td>
+                <td>Asignación Centralizada de Roles LOPSRM por Administrador</td>
+                <td>Administrador</td>
+                <td>Must Have</td>
+                <td>8 SP</td>
+                <td><span class="badge-pass">TERMINADA</span></td>
+            </tr>
+            <tr>
+                <td><strong>US-03</strong></td>
+                <td>Inicio de Sesión Seguro y Emisión de Token JWT</td>
+                <td>Registrado</td>
+                <td>Must Have</td>
+                <td>5 SP</td>
+                <td><span class="badge-pass">TERMINADA</span></td>
+            </tr>
+            <tr>
+                <td><strong>US-04</strong></td>
+                <td>Protección de Endpoints y Barreras de Seguridad RBAC</td>
+                <td>Sistema</td>
+                <td>Must Have</td>
+                <td>5 SP</td>
+                <td><span class="badge-pass">TERMINADA</span></td>
+            </tr>
+            <tr>
+                <td><strong>US-05</strong></td>
+                <td>Consulta del Catálogo Oficial de los 5 Roles LOPSRM</td>
+                <td>Todos</td>
+                <td>Should Have</td>
+                <td>3 SP</td>
+                <td><span class="badge-pass">TERMINADA</span></td>
+            </tr>
+            <tr>
+                <td><strong>US-06</strong></td>
+                <td>Suspensión y Reactivación Lógica de Usuarios (Soft Delete)</td>
+                <td>Administrador</td>
+                <td>Should Have</td>
+                <td>5 SP</td>
+                <td><span class="badge-pass">TERMINADA</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>3. Especificación de Registros y Validaciones</h2>
+    <div class="card">
+        <div class="card-title">Matriz de Validación del Registro Público (<code>RegisterDto</code>)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Campo</th>
+                    <th>Tipo</th>
+                    <th>Obligatorio</th>
+                    <th>Regla de Validación</th>
+                    <th>Mensaje de Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>nombre_completo</code></td>
+                    <td>String</td>
+                    <td>Sí</td>
+                    <td>Longitud mín. 3, máx. 150 caracteres. No vacío.</td>
+                    <td>"El nombre completo es obligatorio"</td>
+                </tr>
+                <tr>
+                    <td><code>correo_electronico</code></td>
+                    <td>String</td>
+                    <td>Sí</td>
+                    <td>Formato RFC 5322 Email. Unicidad en BD.</td>
+                    <td>"El correo debe tener un formato válido" / 409 Conflict</td>
+                </tr>
+                <tr>
+                    <td><code>contrasena</code></td>
+                    <td>String</td>
+                    <td>Sí</td>
+                    <td>Mínimo 8 caracteres. Cifrado Bcrypt costo 12.</td>
+                    <td>"La contraseña debe tener al menos 8 caracteres"</td>
+                </tr>
+                <tr>
+                    <td><code>cedula_profesional</code></td>
+                    <td>String</td>
+                    <td>No</td>
+                    <td>Alfanumérico opcional en registro base.</td>
+                    <td>"La cédula debe ser texto"</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>4. Diagramas de Estados UML y Máquinas de Estados Rediseñadas</h2>
+    <p>A diferencia del diagrama inicial que solo contemplaba el estado del usuario, las siguientes máquinas de estados modelan <strong>el funcionamiento real del sistema y la conexión integral de cada función</strong>:</p>
+
+    <h3>4.1 Máquina de Estados Global del Sistema (Conexión Funcional Intermódulos)</h3>
+    <div class="mermaid">
+stateDiagram-v2
+    [*] --> 1_Identidad_RBAC : Registro de Profesional
+    
+    state "1. Identidad y Acceso (RBAC)" as 1_Identidad_RBAC {
+        Cuenta_Inactiva --> Aprobacion_Admin : Admin valida cédula
+        Aprobacion_Admin --> Cuenta_Activa_Con_Rol : Asigna 1 de 5 roles
+        Cuenta_Activa_Con_Rol --> Sesion_JWT_Activa : Login con JWT
+    }
+
+    1_Identidad_RBAC --> 2_Gestion_Obras : Admin asigna terna (Sprint 2)
+    
+    state "2. Gestión Contractual de Obra" as 2_Gestion_Obras {
+        Obra_Registrada --> Asignacion_Terna : Residente + Superint + Supervisor
+        Asignacion_Terna --> Obra_En_Ejecucion : Entrega de sitio y anticipo
+    }
+
+    2_Gestion_Obras --> 3_Catalogos_APU : Apertura de Catálogo (Sprint 3 & 4)
+    
+    state "3. Catálogo de Conceptos y APU" as 3_Catalogos_APU {
+        Catalogo_Borrador --> Revision_Residente : Partidas y Precios Unitarios
+        Revision_Residente --> Catalogo_Original_Autorizado : Visto bueno legal
+        Catalogo_Original_Autorizado --> Catalogo_Bloqueado : Presupuesto contractual fijo
+    }
+
+    3_Catalogos_APU --> 4_Supervision_Diaria : Arranque de trabajos en campo
+    
+    state "4. Supervisión Diaria en Sitio" as 4_Supervision_Diaria {
+        Reporte_Abierto --> Captura_Clima_Cuadrillas : Clima, EPP, personal
+        Captura_Clima_Cuadrillas --> Validacion_Avance : Avance_t >= Avance_t-1
+        Validacion_Avance --> Carga_6_Fotos : Exactamente 6 fotografías
+        Carga_6_Fotos --> Reporte_PDF_Oficial : Compilación PDF e inmutabilidad
+    }
+
+    4_Supervision_Diaria --> 5_Flujo_Estimaciones : Ciclo perentorio de 15 días
+    
+    state "5. Estimaciones (Flujo Semáforo 15 Días)" as 5_Flujo_Estimaciones {
+        Amarillo_Formulada --> Naranja_Aprobada_Supervisor : Visto bueno técnico (Días 1-10)
+        Amarillo_Formulada --> Rojo_Rechazada_Correccion : Discrepancia volumétrica
+        Rojo_Rechazada_Correccion --> Amarillo_Formulada : Reenvío por Superintendente
+        Naranja_Aprobada_Supervisor --> Verde_Autorizada_Residente : Retenciones 5 al millar y anticipo
+        Verde_Autorizada_Residente --> Tramite_Financiero_Pago : Días 11-15
+    }
+
+    5_Flujo_Estimaciones --> 6_Cierre_Finiquito : Fin de Obra física
+    
+    state "6. Fiscalización y Cierre" as 6_Cierre_Finiquito {
+        Acta_Entrega --> Fianza_Vicios_Ocultos : 10% por 12 meses
+        Fianza_Vicios_Ocultos --> Finiquito_Liquidado : Balance saldos
+        Finiquito_Liquidado --> Expediente_Historico : Preservación Soft-Delete
+    }
+
+    6_Cierre_Finiquito --> [*] : Obra Extinguida
+    </div>
+    <div class="caption">Figura 1: Máquina de Estados Global — Interconexión Funcional del Ciclo de Vida LOPSRM.</div>
+
+    <h3>4.2 Máquina de Estados del Flujo Semáforo de Estimaciones (Arts. 54 LOPSRM / 127-132 RLOPSRM)</h3>
+    <div class="mermaid">
+stateDiagram-v2
+    [*] --> BORRADOR_SUPERINTENDENTE : Cuantificación de volúmenes ejecutados
+    
+    BORRADOR_SUPERINTENDENTE --> AMARILLO_INGRESADA : Envío formal (Días 1 a 5)
+    
+    AMARILLO_INGRESADA --> EN_REVISION_SUPERVISOR : Cotejo con reportes diarios
+    
+    EN_REVISION_SUPERVISOR --> ROJO_RECHAZADA : Discrepancias físicas o volumétricas
+    ROJO_RECHAZADA --> BORRADOR_SUPERINTENDENTE : Corrección por Superintendente
+    
+    EN_REVISION_SUPERVISOR --> NARANJA_VISTO_BUENO : Generadores avalados (Días 6 a 10)
+    
+    NARANJA_VISTO_BUENO --> EN_REVISION_RESIDENTE : Validación financiera y legal
+    
+    EN_REVISION_RESIDENTE --> VERDE_AUTORIZADA : Aplica 5 al millar y amortización anticipo (Días 11 a 15)
+    
+    VERDE_AUTORIZADA --> PAGADA_LIQUIDADA : Pago por tesorería
+    PAGADA_LIQUIDADA --> [*]
+    </div>
+    <div class="caption">Figura 2: Máquina de Estados del Flujo Semáforo Quincenal de Estimaciones.</div>
+
+    <h2>5. Descripción y Evidencia de Pruebas Automatizadas</h2>
+    <p>Se ejecutó el suite formal de pruebas unitarias automatizadas con <strong>Vitest</strong> en el backend. 18 de 18 pruebas resultaron aprobadas al 100%:</p>
+
+    <div class="card">
+        <div class="card-title">Resultado de Ejecución de la Suite de Pruebas (Vitest 4.1)</div>
+        <pre><code>✓ src/common/guards/roles.guard.spec.ts (5 tests) 10ms
+  ✓ should allow access if no roles are required on handler or class
+  ✓ should throw ForbiddenException if user is not present in request
+  ✓ should throw ForbiddenException if user has no role assigned
+  ✓ should throw ForbiddenException if user role does not match required roles
+  ✓ should allow access if user role matches one of the required roles (case-insensitive)
+
+✓ src/app.controller.spec.ts (1 test) 131ms
+  ✓ should return "Hello World!"
+
+✓ src/modules/users/users.service.spec.ts (6 tests) 303ms
+  ✓ should throw ConflictException if email is already registered
+  ✓ should create an inactive user with null role and hashed password
+  ✓ should throw BadRequestException if role does not exist
+  ✓ should assign role and activate user successfully
+  ✓ should toggle user active status (soft delete)
+  ✓ should throw NotFoundException if user does not exist
+
+✓ src/modules/auth/auth.service.spec.ts (6 tests) 486ms
+  ✓ should register a new user in inactive state and without role
+  ✓ should throw UnauthorizedException if user does not exist
+  ✓ should throw UnauthorizedException if password does not match
+  ✓ should throw UnauthorizedException if user has no assigned role (LOPSRM rule)
+  ✓ should throw UnauthorizedException if user is inactive (LOPSRM rule)
+  ✓ should return access token and user info when credentials, role, and active status are valid
+
+Test Files  4 passed (4)
+     Tests  18 passed (18)
+  Duration  1.24s</code></pre>
+    </div>
+
+    <h2>6. Credenciales y Accesos de Verificación</h2>
+    <div class="card">
+        <p><strong>Accesos a Entornos Locales:</strong></p>
+        <ul>
+            <li><strong>Frontend Web (SPA):</strong> <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></li>
+            <li><strong>Documentación Swagger:</strong> <a href="http://localhost:3000/api/docs" target="_blank">http://localhost:3000/api/docs</a></li>
+            <li><strong>API REST Base:</strong> <code>http://localhost:3000/api/v1</code></li>
+        </ul>
+        <p><strong>Usuarios Preconfigurados de Prueba:</strong></p>
+        <ul>
+            <li><strong>Administrador Maestro:</strong> <code>admin@lopsrm.gob.mx</code> / <code>AdminLOPSRM2026!</code></li>
+            <li><strong>Superintendente Aprobado:</strong> <code>roberto.valdes@empresa.mx</code> / <code>ClaveSuperint2026!</code></li>
+            <li><strong>Residente de Obra:</strong> <code>mariana.ruiz@dependencia.gob.mx</code> / <code>ClaveSegura2026!</code></li>
+        </ul>
+    </div>
+
+</body>
+</html>
