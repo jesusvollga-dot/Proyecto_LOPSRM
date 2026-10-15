@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield,
   UserCheck,
@@ -13,6 +13,13 @@ import {
   CheckCircle,
   ShieldAlert,
   Users,
+  Briefcase,
+  Calendar,
+  DollarSign,
+  PlusCircle,
+  HardHat,
+  FolderKanban,
+  CheckSquare,
 } from 'lucide-react';
 
 interface Role {
@@ -30,6 +37,35 @@ interface UserProfile {
   rol?: Role | null;
   activo: boolean;
   fecha_registro: string;
+}
+
+interface Asignacion {
+  id_asignacion: number;
+  id_obra: number;
+  id_usuario: number;
+  rol_en_obra: 'RESIDENTE' | 'SUPERINTENDENTE' | 'SUPERVISOR';
+  activo: boolean;
+  usuario?: UserProfile;
+}
+
+interface Obra {
+  id_obra: number;
+  clave_obra: string;
+  nombre_obra: string;
+  numero_contrato: string;
+  presupuesto_autorizado: number;
+  porcentaje_anticipo: number;
+  fecha_inicio_programada: string;
+  fecha_termino_programada: string;
+  estatus: 'EN_EJECUCION' | 'SUSPENDIDA' | 'TERMINADA' | 'FINIQUITADA';
+  activo: boolean;
+  asignaciones?: Asignacion[];
+}
+
+interface CandidatosCuadrilla {
+  residentes: UserProfile[];
+  superintendentes: UserProfile[];
+  supervisores: UserProfile[];
 }
 
 export default function App() {
@@ -50,7 +86,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
 
   // Admin Dashboard state
-  const [adminTab, setAdminTab] = useState<'pending' | 'all' | 'roles'>('pending');
+  const [adminTab, setAdminTab] = useState<'pending' | 'all' | 'roles' | 'obras'>('obras');
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [pendingList, setPendingList] = useState<UserProfile[]>([]);
   const [rolesList, setRolesList] = useState<Role[]>([]);
@@ -59,21 +95,37 @@ export default function App() {
   const [activateOnAssign, setActivateOnAssign] = useState<boolean>(true);
   const [adminActionMsg, setAdminActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Fetch initial profile if token exists
-  useEffect(() => {
-    if (token) {
-      fetchProfile();
-    }
-  }, [token]);
+  // Sprint 2: Obras state
+  const [obrasList, setObrasList] = useState<Obra[]>([]);
+  const [myWorksList, setMyWorksList] = useState<Obra[]>([]);
+  const [candidatos, setCandidatos] = useState<CandidatosCuadrilla>({
+    residentes: [],
+    superintendentes: [],
+    supervisores: [],
+  });
+  const [isCreateObraModalOpen, setIsCreateObraModalOpen] = useState(false);
+  const [selectedObraForCuadrilla, setSelectedObraForCuadrilla] = useState<Obra | null>(null);
 
-  // Fetch admin data when admin logs in or switches tabs
-  useEffect(() => {
-    if (token && currentUser?.rol?.nombre_rol === 'ADMINISTRADOR') {
-      fetchAdminData();
-    }
-  }, [token, currentUser]);
+  // Formulario Alta de Obra (HU-007, HU-008, HU-009)
+  const [claveObra, setClaveObra] = useState('');
+  const [nombreObra, setNombreObra] = useState('');
+  const [numeroContrato, setNumeroContrato] = useState('');
+  const [presupuestoAutorizado, setPresupuestoAutorizado] = useState<number | ''>('');
+  const [porcentajeAnticipo, setPorcentajeAnticipo] = useState<number>(30);
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaTermino, setFechaTermino] = useState('');
 
-  const fetchProfile = async () => {
+  // Logout handler
+  const handleLogout = useCallback(() => {
+    setToken(null);
+    setCurrentUser(null);
+    localStorage.removeItem('lopsrm_token');
+    localStorage.removeItem('lopsrm_user');
+  }, []);
+
+  // Fetch profile
+  const fetchProfile = useCallback(async () => {
+    if (!token) return;
     try {
       const res = await fetch('/api/v1/auth/profile', {
         headers: { Authorization: `Bearer ${token}` },
@@ -85,12 +137,14 @@ export default function App() {
       } else {
         handleLogout();
       }
-    } catch (e) {
-      console.error('Error al obtener perfil:', e);
+    } catch {
+      // Servidor no disponible
     }
-  };
+  }, [token, handleLogout]);
 
-  const fetchAdminData = async () => {
+  // Fetch admin data
+  const fetchAdminData = useCallback(async () => {
+    if (!token) return;
     try {
       const [usersRes, pendingRes, rolesRes] = await Promise.all([
         fetch('/api/v1/users', { headers: { Authorization: `Bearer ${token}` } }),
@@ -101,10 +155,56 @@ export default function App() {
       if (usersRes.ok) setUsersList(await usersRes.json());
       if (pendingRes.ok) setPendingList(await pendingRes.json());
       if (rolesRes.ok) setRolesList(await rolesRes.json());
-    } catch (e) {
-      console.error('Error al cargar datos administrativos:', e);
+    } catch {
+      console.error('Error al cargar datos administrativos');
     }
-  };
+  }, [token]);
+
+  // Fetch obras data (Sprint 2)
+  const fetchObrasData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const [obrasRes, candRes] = await Promise.all([
+        fetch('/api/v1/obras', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/v1/obras/candidatos', { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+
+      if (obrasRes.ok) setObrasList(await obrasRes.json());
+      if (candRes.ok) setCandidatos(await candRes.json());
+    } catch {
+      console.error('Error al cargar datos de obras');
+    }
+  }, [token]);
+
+  // Fetch my works (HU-013)
+  const fetchMyWorks = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/v1/obras/mis-obras', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setMyWorksList(await res.json());
+    } catch {
+      console.error('Error al consultar mis obras asignadas');
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchProfile();
+    }
+  }, [token, fetchProfile]);
+
+  useEffect(() => {
+    if (token && currentUser) {
+      if (currentUser.rol?.nombre_rol === 'ADMINISTRADOR') {
+        fetchAdminData();
+        fetchObrasData();
+      } else {
+        fetchMyWorks();
+      }
+    }
+  }, [token, currentUser, fetchAdminData, fetchObrasData, fetchMyWorks]);
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -131,7 +231,7 @@ export default function App() {
       localStorage.setItem('lopsrm_token', data.access_token);
       localStorage.setItem('lopsrm_user', JSON.stringify(data.usuario));
       setAuthError(null);
-    } catch (err) {
+    } catch {
       setAuthError('No se pudo conectar al servidor backend');
     } finally {
       setLoading(false);
@@ -168,18 +268,11 @@ export default function App() {
       setFullName('');
       setCedula('');
       setAuthMode('login');
-    } catch (err) {
+    } catch {
       setAuthError('Error de comunicación con el servidor');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = () => {
-    setToken(null);
-    setCurrentUser(null);
-    localStorage.removeItem('lopsrm_token');
-    localStorage.removeItem('lopsrm_user');
   };
 
   const handleAssignRole = async () => {
@@ -211,8 +304,9 @@ export default function App() {
         });
         setSelectedUserForRole(null);
         fetchAdminData();
+        fetchObrasData();
       }
-    } catch (err) {
+    } catch {
       setAdminActionMsg({ type: 'error', text: 'Error al procesar solicitud' });
     } finally {
       setLoading(false);
@@ -232,9 +326,130 @@ export default function App() {
 
       if (res.ok) {
         fetchAdminData();
+        fetchObrasData();
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
+      console.error('Error al actualizar estatus');
+    }
+  };
+
+  // HU-007, HU-008, HU-009: Crear Nueva Obra Pública
+  const handleCreateObra = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setAdminActionMsg(null);
+
+    if (new Date(fechaTermino) < new Date(fechaInicio)) {
+      setAdminActionMsg({
+        type: 'error',
+        text: 'HU-009: La fecha de término programada no puede ser anterior a la fecha de inicio.',
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/obras', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clave_obra: claveObra,
+          nombre_obra: nombreObra,
+          numero_contrato: numeroContrato,
+          presupuesto_autorizado: Number(presupuestoAutorizado),
+          porcentaje_anticipo: Number(porcentajeAnticipo),
+          fecha_inicio_programada: fechaInicio,
+          fecha_termino_programada: fechaTermino,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setAdminActionMsg({ type: 'error', text: data.message || 'Error al registrar obra' });
+      } else {
+        setAdminActionMsg({
+          type: 'success',
+          text: `Obra '${data.nombre_obra}' (${data.clave_obra}) registrada exitosamente.`,
+        });
+        setIsCreateObraModalOpen(false);
+        // Reset form
+        setClaveObra('');
+        setNombreObra('');
+        setNumeroContrato('');
+        setPresupuestoAutorizado('');
+        setPorcentajeAnticipo(30);
+        setFechaInicio('');
+        setFechaTermino('');
+        fetchObrasData();
+      }
+    } catch {
+      setAdminActionMsg({ type: 'error', text: 'Error al conectar con la API de obras' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // HU-010, HU-011, HU-012: Asignar miembro de cuadrilla a una obra
+  const handleAssignCuadrillaMember = async (
+    idObra: number,
+    idUsuario: number,
+    rolEnObra: 'RESIDENTE' | 'SUPERINTENDENTE' | 'SUPERVISOR',
+  ) => {
+    if (!idUsuario) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/obras/${idObra}/asignar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_usuario: idUsuario,
+          rol_en_obra: rolEnObra,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAdminActionMsg({ type: 'error', text: data.message || 'Error al asignar cuadrilla' });
+      } else {
+        setAdminActionMsg({
+          type: 'success',
+          text: `Asignación de ${rolEnObra} actualizada exitosamente.`,
+        });
+        fetchObrasData();
+        // Update selected obra modal state
+        setSelectedObraForCuadrilla(data);
+      }
+    } catch {
+      setAdminActionMsg({ type: 'error', text: 'Error al asignar figura operativa' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cambiar estatus de obra
+  const handleToggleObraStatus = async (obra: Obra) => {
+    const nuevoEstatus = obra.estatus === 'EN_EJECUCION' ? 'SUSPENDIDA' : 'EN_EJECUCION';
+    try {
+      const res = await fetch(`/api/v1/obras/${obra.id_obra}/status`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ estatus: nuevoEstatus }),
+      });
+      if (res.ok) {
+        fetchObrasData();
+      }
+    } catch {
+      console.error('Error al actualizar estatus de obra');
     }
   };
 
@@ -249,12 +464,12 @@ export default function App() {
       } else {
         alert('Respuesta inesperada: Acceso permitido');
       }
-    } catch (e) {
+    } catch {
       alert('Error en petición');
     }
   };
 
-  // Color badges helper
+  // Helper para insignias de roles
   const getRoleBadge = (roleName?: string | null) => {
     switch (roleName) {
       case 'ADMINISTRADOR':
@@ -272,6 +487,35 @@ export default function App() {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'EN_EJECUCION':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      case 'SUSPENDIDA':
+        return 'bg-rose-100 text-rose-800 border-rose-300';
+      case 'TERMINADA':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'FINIQUITADA':
+        return 'bg-slate-200 text-slate-700 border-slate-400';
+      default:
+        return 'bg-slate-100 text-slate-600 border-slate-300';
+    }
+  };
+
+  // Format currency
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+    }).format(amount);
+  };
+
+  // Anticipo preview calculation
+  const calculatedAnticipo =
+    typeof presupuestoAutorizado === 'number' && presupuestoAutorizado > 0
+      ? (presupuestoAutorizado * porcentajeAnticipo) / 100
+      : 0;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
       {/* Top Header */}
@@ -286,7 +530,7 @@ export default function App() {
                 SISTEMA DE CONTROL DE OBRA PÚBLICA
               </span>
               <span className="text-xs text-slate-400 font-mono block">
-                Marco Normativo: LOPSRM / RLOPSRM • Sprint 1
+                LOPSRM / RLOPSRM • Sprint 2: Obras y Cuadrillas
               </span>
             </div>
           </div>
@@ -329,7 +573,6 @@ export default function App() {
           /* Authentication Screen */
           <div className="max-w-md mx-auto my-8">
             <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-              {/* Tabs */}
               <div className="flex border-b border-slate-200 bg-slate-50">
                 <button
                   onClick={() => {
@@ -360,7 +603,6 @@ export default function App() {
               </div>
 
               <div className="p-6 sm:p-8">
-                {/* Alerts */}
                 {authError && (
                   <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start space-x-3">
                     <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 mt-0.5" />
@@ -382,7 +624,6 @@ export default function App() {
                 )}
 
                 {authMode === 'login' ? (
-                  /* Login Form */
                   <div>
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div>
@@ -428,10 +669,9 @@ export default function App() {
                       </button>
                     </form>
 
-                    {/* Demo Shortcuts */}
                     <div className="mt-8 pt-6 border-t border-slate-100">
                       <p className="text-xs text-slate-500 font-semibold mb-3 uppercase tracking-wider text-center">
-                        Accesos de Prueba Rápida (Sprint 1)
+                        Accesos de Prueba Rápida
                       </p>
                       <div className="grid grid-cols-2 gap-2">
                         <button
@@ -465,7 +705,6 @@ export default function App() {
                     </div>
                   </div>
                 ) : (
-                  /* Register Form */
                   <form onSubmit={handleRegister} className="space-y-4">
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed">
                       <strong>⚖️ Normativa LOPSRM (RF-01):</strong> Los nuevos usuarios se crean en estado{' '}
@@ -509,7 +748,7 @@ export default function App() {
 
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
-                        Cédula Profesional (Opcional)
+                        Cédula Profesional (Obligatoria para Terna en Sprint 2)
                       </label>
                       <div className="relative">
                         <Award className="w-5 h-5 text-slate-400 absolute left-3 top-3" />
@@ -555,11 +794,23 @@ export default function App() {
           </div>
         ) : currentUser.rol?.nombre_rol === 'ADMINISTRADOR' ? (
           /* ========================================================================= */
-          /* ADMINISTRATOR DASHBOARD (US-02: CENTRAL ROLE & PERMISSION MANAGEMENT)     */
+          /* ADMINISTRATOR DASHBOARD (SPRINT 1: RBAC + SPRINT 2: GESTIÓN DE OBRAS)     */
           /* ========================================================================= */
           <div className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Obras Activas
+                  </span>
+                  <div className="text-2xl font-bold text-emerald-700 mt-1">{obrasList.length}</div>
+                </div>
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                  <FolderKanban className="w-6 h-6" />
+                </div>
+              </div>
+
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -575,7 +826,7 @@ export default function App() {
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Pendientes de Aprobación
+                    Pendientes Aprobación
                   </span>
                   <div className="text-2xl font-bold text-amber-600 mt-1">{pendingList.length}</div>
                 </div>
@@ -587,12 +838,16 @@ export default function App() {
               <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                    Roles LOPSRM
+                    Presupuesto Contratado
                   </span>
-                  <div className="text-2xl font-bold text-purple-600 mt-1">{rolesList.length || 5}</div>
+                  <div className="text-base font-bold text-slate-900 mt-1 truncate">
+                    {formatMoney(
+                      obrasList.reduce((acc, o) => acc + Number(o.presupuesto_autorizado), 0),
+                    )}
+                  </div>
                 </div>
                 <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                  <Shield className="w-6 h-6" />
+                  <DollarSign className="w-6 h-6" />
                 </div>
               </div>
             </div>
@@ -619,7 +874,24 @@ export default function App() {
             {/* Main Tabs Container */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="border-b border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setAdminTab('obras')}
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center space-x-2 ${
+                      adminTab === 'obras'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span>Gestión de Obras (Sprint 2)</span>
+                    {obrasList.length > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-white text-emerald-800 text-xs flex items-center justify-center font-bold">
+                        {obrasList.length}
+                      </span>
+                    )}
+                  </button>
+
                   <button
                     onClick={() => setAdminTab('pending')}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center space-x-2 ${
@@ -659,15 +931,168 @@ export default function App() {
                   </button>
                 </div>
 
-                <button
-                  onClick={fetchAdminData}
-                  className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
-                >
-                  Actualizar Datos
-                </button>
+                <div className="flex items-center space-x-3">
+                  {adminTab === 'obras' && (
+                    <button
+                      onClick={() => setIsCreateObraModalOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>Registrar Nueva Obra (HU-007)</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      fetchAdminData();
+                      fetchObrasData();
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
+                  >
+                    Actualizar
+                  </button>
+                </div>
               </div>
 
               <div className="p-6">
+                {/* Tab: Obras Públicas (Sprint 2) */}
+                {adminTab === 'obras' && (
+                  <div>
+                    {obrasList.length === 0 ? (
+                      <div className="text-center py-16 text-slate-400">
+                        <Building2 className="w-14 h-14 mx-auto text-slate-300 mb-3" />
+                        <h4 className="font-bold text-slate-700 text-base">No hay obras registradas aún</h4>
+                        <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 mb-4">
+                          Comienza registrando tu primer contrato de obra pública con su presupuesto y fechas
+                          contractuales.
+                        </p>
+                        <button
+                          onClick={() => setIsCreateObraModalOpen(true)}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md transition inline-flex items-center space-x-1.5"
+                        >
+                          <PlusCircle className="w-4 h-4" />
+                          <span>Dar de Alta Primera Obra (HU-007)</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-6">
+                        {obrasList.map((obra) => {
+                          const resAsig = obra.asignaciones?.find((a) => a.rol_en_obra === 'RESIDENTE');
+                          const supAsig = obra.asignaciones?.find((a) => a.rol_en_obra === 'SUPERINTENDENTE');
+                          const visAsig = obra.asignaciones?.find((a) => a.rol_en_obra === 'SUPERVISOR');
+
+                          return (
+                            <div
+                              key={obra.id_obra}
+                              className="border border-slate-200 rounded-2xl p-6 bg-slate-50/50 hover:bg-white transition shadow-sm space-y-4"
+                            >
+                              {/* Top Bar of Card */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-mono text-xs px-2.5 py-0.5 rounded-md bg-slate-800 text-white font-semibold">
+                                      {obra.clave_obra}
+                                    </span>
+                                    <span className="text-xs text-slate-500 font-mono">
+                                      Contrato: {obra.numero_contrato}
+                                    </span>
+                                    <span
+                                      className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadge(
+                                        obra.estatus,
+                                      )}`}
+                                    >
+                                      {obra.estatus}
+                                    </span>
+                                  </div>
+                                  <h3 className="text-lg font-bold text-slate-900 mt-1">{obra.nombre_obra}</h3>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => setSelectedObraForCuadrilla(obra)}
+                                    className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center space-x-1 shadow-sm"
+                                  >
+                                    <Users className="w-3.5 h-3.5" />
+                                    <span>Gestionar Cuadrilla (Terna)</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleToggleObraStatus(obra)}
+                                    className={`px-3 py-2 rounded-lg text-xs font-semibold border transition ${
+                                      obra.estatus === 'EN_EJECUCION'
+                                        ? 'border-rose-300 text-rose-700 hover:bg-rose-50'
+                                        : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
+                                    }`}
+                                  >
+                                    {obra.estatus === 'EN_EJECUCION' ? 'Suspender Obra' : 'Reanudar Obra'}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                                  <div className="text-slate-400 font-medium uppercase tracking-wider flex items-center">
+                                    <DollarSign className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Presupuesto & Anticipo (HU-008)
+                                  </div>
+                                  <div className="text-sm font-bold text-slate-900 mt-1">
+                                    {formatMoney(Number(obra.presupuesto_autorizado))}
+                                  </div>
+                                  <div className="text-slate-500 text-[11px] mt-0.5">
+                                    Anticipo ({obra.porcentaje_anticipo}%):{' '}
+                                    <strong>
+                                      {formatMoney(
+                                        (Number(obra.presupuesto_autorizado) * Number(obra.porcentaje_anticipo)) / 100,
+                                      )}
+                                    </strong>
+                                  </div>
+                                </div>
+
+                                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                                  <div className="text-slate-400 font-medium uppercase tracking-wider flex items-center">
+                                    <Calendar className="w-3.5 h-3.5 mr-1 text-blue-600" /> Periodo Contractual (HU-009)
+                                  </div>
+                                  <div className="text-sm font-bold text-slate-900 mt-1">
+                                    {obra.fecha_inicio_programada} al {obra.fecha_termino_programada}
+                                  </div>
+                                  <div className="text-slate-500 text-[11px] mt-0.5">
+                                    Ejecución programada formalizada
+                                  </div>
+                                </div>
+
+                                <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+                                  <div className="text-slate-400 font-medium uppercase tracking-wider flex items-center">
+                                    <HardHat className="w-3.5 h-3.5 mr-1 text-amber-600" /> Terna LOPSRM (HU-010..012)
+                                  </div>
+                                  <div className="mt-1 space-y-1 text-[11px]">
+                                    <div className="truncate">
+                                      <span className="font-semibold text-blue-700">Residente:</span>{' '}
+                                      {resAsig?.usuario?.nombre_completo || (
+                                        <span className="text-rose-500 italic">Sin asignar</span>
+                                      )}
+                                    </div>
+                                    <div className="truncate">
+                                      <span className="font-semibold text-amber-700">Superintendente:</span>{' '}
+                                      {supAsig?.usuario?.nombre_completo || (
+                                        <span className="text-rose-500 italic">Sin asignar</span>
+                                      )}
+                                    </div>
+                                    <div className="truncate">
+                                      <span className="font-semibold text-emerald-700">Supervisor:</span>{' '}
+                                      {visAsig?.usuario?.nombre_completo || (
+                                        <span className="text-rose-500 italic">Sin asignar</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Tab: Pendientes */}
                 {adminTab === 'pending' && (
                   <div>
@@ -817,7 +1242,305 @@ export default function App() {
               </div>
             </div>
 
-            {/* Modal for Role Assignment */}
+            {/* Modal para Crear Nueva Obra (HU-007, HU-008, HU-009) */}
+            {isCreateObraModalOpen && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh]">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 className="text-base font-bold text-slate-900 flex items-center">
+                      <Building2 className="w-5 h-5 text-emerald-600 mr-2" />
+                      Registrar Nueva Obra Pública (HU-007)
+                    </h3>
+                    <button
+                      onClick={() => setIsCreateObraModalOpen(false)}
+                      className="text-slate-400 hover:text-slate-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleCreateObra} className="mt-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Clave de Obra
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={claveObra}
+                          onChange={(e) => setClaveObra(e.target.value)}
+                          placeholder="OBRA-2026-ED-001"
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Número de Contrato (Art. 46)
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={numeroContrato}
+                          onChange={(e) => setNumeroContrato(e.target.value)}
+                          placeholder="DGCOP-LPN-045-2026"
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Nombre Oficial de la Obra
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={nombreObra}
+                        onChange={(e) => setNombreObra(e.target.value)}
+                        placeholder="Construcción de Edificio de Aulas y Laboratorios..."
+                        className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                      />
+                    </div>
+
+                    {/* Presupuesto y Anticipo (HU-008) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Presupuesto Autorizado ($ MXN)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          required
+                          value={presupuestoAutorizado}
+                          onChange={(e) =>
+                            setPresupuestoAutorizado(e.target.value === '' ? '' : Number(e.target.value))
+                          }
+                          placeholder="12500000.00"
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Anticipo (% máx 50)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="50"
+                          required
+                          value={porcentajeAnticipo}
+                          onChange={(e) => setPorcentajeAnticipo(Number(e.target.value))}
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white font-mono"
+                        />
+                        <div className="text-[11px] text-slate-500 mt-1">
+                          Monto Anticipo: <strong>{formatMoney(calculatedAnticipo)}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fechas Contractuales (HU-009) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Fecha Inicio Programada
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={fechaInicio}
+                          onChange={(e) => setFechaInicio(e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                          Fecha Término Programada
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={fechaTermino}
+                          onChange={(e) => setFechaTermino(e.target.value)}
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-3 pt-4 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setIsCreateObraModalOpen(false)}
+                        className="flex-1 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 py-2.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-md"
+                      >
+                        {loading ? 'Guardando...' : 'Guardar Obra Pública'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Modal para Asignar Cuadrilla / Terna (HU-010, HU-011, HU-012) */}
+            {selectedObraForCuadrilla && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+                <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh]">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 flex items-center">
+                        <HardHat className="w-5 h-5 text-blue-600 mr-2" />
+                        Conformar Cuadrilla Operativa (Terna LOPSRM)
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {selectedObraForCuadrilla.clave_obra} — {selectedObraForCuadrilla.nombre_obra}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedObraForCuadrilla(null)}
+                      className="text-slate-400 hover:text-slate-600 font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-5">
+                    {/* HU-010: Residente */}
+                    <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-blue-900 uppercase tracking-wider flex items-center">
+                          <CheckSquare className="w-4 h-4 mr-1.5 text-blue-600" />
+                          1. Residente de Obra (HU-010 - Convocante)
+                        </span>
+                        <span className="text-[11px] text-blue-700 font-medium">Art. 112 RLOPSRM</span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Servidor público facultado para autorizar y firmar estimaciones y modificaciones.
+                      </p>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 p-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                          defaultValue={
+                            selectedObraForCuadrilla.asignaciones?.find((a) => a.rol_en_obra === 'RESIDENTE')
+                              ?.id_usuario || ''
+                          }
+                          onChange={(e) =>
+                            handleAssignCuadrillaMember(
+                              selectedObraForCuadrilla.id_obra,
+                              Number(e.target.value),
+                              'RESIDENTE',
+                            )
+                          }
+                        >
+                          <option value="">-- Seleccionar Residente Acreditado --</option>
+                          {candidatos.residentes.map((c) => (
+                            <option key={c.id_usuario} value={c.id_usuario}>
+                              {c.nombre_completo} ({c.cedula_profesional || 'Sin Cédula'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* HU-011: Superintendente */}
+                    <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center">
+                          <CheckSquare className="w-4 h-4 mr-1.5 text-amber-600" />
+                          2. Superintendente de Construcción (HU-011 - Contratista)
+                        </span>
+                        <span className="text-[11px] text-amber-700 font-medium">Art. 115 RLOPSRM</span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Profesional técnico facultado por el contratista para la ejecución y formulación de estimaciones.
+                      </p>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 p-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+                          defaultValue={
+                            selectedObraForCuadrilla.asignaciones?.find((a) => a.rol_en_obra === 'SUPERINTENDENTE')
+                              ?.id_usuario || ''
+                          }
+                          onChange={(e) =>
+                            handleAssignCuadrillaMember(
+                              selectedObraForCuadrilla.id_obra,
+                              Number(e.target.value),
+                              'SUPERINTENDENTE',
+                            )
+                          }
+                        >
+                          <option value="">-- Seleccionar Superintendente Acreditado --</option>
+                          {candidatos.superintendentes.map((c) => (
+                            <option key={c.id_usuario} value={c.id_usuario}>
+                              {c.nombre_completo} ({c.cedula_profesional || 'Sin Cédula'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* HU-012: Supervisor */}
+                    <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider flex items-center">
+                          <CheckSquare className="w-4 h-4 mr-1.5 text-emerald-600" />
+                          3. Supervisor de Obra (HU-012 - Supervisión Técnica)
+                        </span>
+                        <span className="text-[11px] text-emerald-700 font-medium">Campo & 6 Fotos</span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        Técnico responsable del reporte diario, evidencias fotográficas y visto bueno de generadores.
+                      </p>
+                      <div className="flex gap-2">
+                        <select
+                          className="flex-1 p-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                          defaultValue={
+                            selectedObraForCuadrilla.asignaciones?.find((a) => a.rol_en_obra === 'SUPERVISOR')
+                              ?.id_usuario || ''
+                          }
+                          onChange={(e) =>
+                            handleAssignCuadrillaMember(
+                              selectedObraForCuadrilla.id_obra,
+                              Number(e.target.value),
+                              'SUPERVISOR',
+                            )
+                          }
+                        >
+                          <option value="">-- Seleccionar Supervisor Acreditado --</option>
+                          {candidatos.supervisores.map((c) => (
+                            <option key={c.id_usuario} value={c.id_usuario}>
+                              {c.nombre_completo} ({c.cedula_profesional || 'Sin Cédula'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+                    <button
+                      onClick={() => setSelectedObraForCuadrilla(null)}
+                      className="px-5 py-2.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm"
+                    >
+                      Cerrar y Regresar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal para Asignar Rol a Usuario */}
             {selectedUserForRole && (
               <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
                 <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
@@ -898,9 +1621,9 @@ export default function App() {
           </div>
         ) : (
           /* ========================================================================= */
-          /* REGULAR USER VIEW (SUPERINTENDENTE, SUPERVISOR, RESIDENTE, DIRECTOR)      */
+          /* REGULAR USER VIEW (HU-013: CONSULTAR OBRAS ASIGNADAS & ROADMAP)           */
           /* ========================================================================= */
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-5xl mx-auto space-y-6">
             {/* User Welcome Card */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -941,17 +1664,99 @@ export default function App() {
               </div>
             </div>
 
+            {/* HU-013: Mis Obras Asignadas */}
+            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base flex items-center">
+                    <Briefcase className="w-5 h-5 text-emerald-600 mr-2" />
+                    Mis Obras Asignadas (HU-013)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Proyectos donde formas parte de la terna operativa (Aislamiento de Información)
+                  </p>
+                </div>
+                <button
+                  onClick={fetchMyWorks}
+                  className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold underline"
+                >
+                  Actualizar Lista
+                </button>
+              </div>
+
+              {myWorksList.length === 0 ? (
+                <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                  <FolderKanban className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm font-semibold text-slate-700">Aún no tienes obras asignadas</p>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                    El Administrador debe vincularte a la cuadrilla de un contrato activo con tu rol normativo.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {myWorksList.map((obra) => {
+                    const myAsig = obra.asignaciones?.find((a) => a.id_usuario === currentUser.id_usuario);
+                    return (
+                      <div
+                        key={obra.id_obra}
+                        className="p-5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white transition space-y-3 shadow-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-800 text-white font-bold">
+                            {obra.clave_obra}
+                          </span>
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-bold border ${getStatusBadge(
+                              obra.estatus,
+                            )}`}
+                          >
+                            {obra.estatus}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-sm">{obra.nombre_obra}</h4>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            Contrato: {obra.numero_contrato}
+                          </span>
+                        </div>
+
+                        <div className="text-xs space-y-1 bg-white p-3 rounded-lg border border-slate-200">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Presupuesto:</span>
+                            <span className="font-bold text-slate-800">
+                              {formatMoney(Number(obra.presupuesto_autorizado))}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Tu Función:</span>
+                            <span className="font-bold text-emerald-700">{myAsig?.rol_en_obra}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Periodo:</span>
+                            <span className="text-slate-700">
+                              {obra.fecha_inicio_programada} al {obra.fecha_termino_programada}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Upcoming Sprints Roadmap */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
                 Módulos del Sistema en Desarrollo (Roadmap LOPSRM)
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                  <span className="text-xs font-bold text-slate-400 block mb-1">Sprint 2</span>
+                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50">
+                  <span className="text-xs font-bold text-emerald-700 block mb-1">Sprint 2 • En Curso</span>
                   <div className="font-bold text-slate-800 text-sm">Obras y Cuadrillas</div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Asignación formal de la terna: Residente, Superintendente y Supervisor.
+                    HU-007 a HU-013: Alta de obras y terna legal Residente / Superint. / Supervisor.
                   </p>
                 </div>
 
@@ -1000,7 +1805,7 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
         Proyecto: Sistema de Información para el Control de Obra Pública (LOPSRM) • Análisis y Diseño de Sistemas •
-        2026
+        Sprint 2
       </footer>
     </div>
   );
