@@ -46,15 +46,15 @@ export class CreateObraDto {
 
   @ApiPropertyOptional({
     example: 30.0,
-    description: 'Porcentaje de anticipo pactado (Art. 50 LOPSRM, límite entre 0% y 50%) (HU-008)',
+    description: 'Porcentaje de anticipo pactado (Art. 50 LOPSRM, límite máximo del 30%)',
     default: 30.0,
     minimum: 0,
-    maximum: 50,
+    maximum: 30,
   })
   @IsOptional()
   @IsNumber({}, { message: 'El porcentaje de anticipo debe ser numérico' })
   @Min(0, { message: 'El anticipo no puede ser negativo' })
-  @Max(50, { message: 'El anticipo no puede exceder el 50% según la LOPSRM' })
+  @Max(30, { message: 'El anticipo no puede exceder el 30% del total de la obra' })
   porcentaje_anticipo?: number;
 
   @ApiProperty({

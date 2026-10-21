@@ -31,10 +31,26 @@ export class ObrasService {
    * HU-007, HU-008, HU-009: Alta formal de obra pública con presupuesto y fechas
    */
   async create(dto: CreateObraDto): Promise<Obra> {
-    // HU-009: Validación de que fecha final no preceda a la inicial
-    if (new Date(dto.fecha_termino_programada) < new Date(dto.fecha_inicio_programada)) {
+    // Validación de anticipo máximo del 30%
+    if (dto.porcentaje_anticipo !== undefined && (dto.porcentaje_anticipo < 0 || dto.porcentaje_anticipo > 30)) {
       throw new BadRequestException(
-        'Inconsistencia en fechas: La fecha de término programada no puede ser anterior a la fecha de inicio',
+        'El porcentaje de anticipo debe encontrarse entre 0% y 30% del total de la obra.',
+      );
+    }
+
+    // Validación de que la fecha de inicio no sea anterior a la fecha actual (no fechas pasadas)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (dto.fecha_inicio_programada < todayStr) {
+      throw new BadRequestException(
+        'Inconsistencia en fechas: La fecha de inicio programada no puede ser una fecha pasada (anterior a la fecha actual).',
+      );
+    }
+
+    // Validación de que la fecha final no preceda a la inicial
+    if (dto.fecha_termino_programada < dto.fecha_inicio_programada) {
+      throw new BadRequestException(
+        'Inconsistencia en fechas: La fecha de término programada no puede ser anterior a la fecha de inicio programada.',
       );
     }
 

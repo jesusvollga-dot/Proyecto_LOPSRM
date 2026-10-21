@@ -4,8 +4,9 @@ import {
   Column,
   CreateDateColumn,
   OneToMany,
+  type Relation,
 } from 'typeorm';
-import { AsignacionObra } from './asignacion-obra.entity.js';
+import type { AsignacionObra } from './asignacion-obra.entity.js';
 
 @Entity('obras')
 export class Obra {
@@ -42,6 +43,6 @@ export class Obra {
   @CreateDateColumn({ name: 'fecha_creacion', type: 'timestamptz' })
   fecha_creacion: Date;
 
-  @OneToMany(() => AsignacionObra, (asig) => asig.obra)
-  asignaciones: AsignacionObra[];
+  @OneToMany('AsignacionObra', 'obra')
+  asignaciones: Relation<AsignacionObra[]>;
 }

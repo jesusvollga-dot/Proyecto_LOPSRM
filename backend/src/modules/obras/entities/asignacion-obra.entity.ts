@@ -6,8 +6,9 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
+  type Relation,
 } from 'typeorm';
-import { Obra } from './obra.entity.js';
+import type { Obra } from './obra.entity.js';
 import { User } from '../../users/entities/user.entity.js';
 
 @Entity('asignaciones_obra')
@@ -19,9 +20,9 @@ export class AsignacionObra {
   @Column({ name: 'id_obra', type: 'int' })
   id_obra: number;
 
-  @ManyToOne(() => Obra, (obra) => obra.asignaciones, { onDelete: 'RESTRICT' })
+  @ManyToOne('Obra', 'asignaciones', { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'id_obra' })
-  obra: Obra;
+  obra: Relation<Obra>;
 
   @Column({ name: 'id_usuario', type: 'int' })
   id_usuario: number;

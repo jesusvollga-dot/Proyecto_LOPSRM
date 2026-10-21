@@ -80,6 +80,29 @@ describe('ObrasService (Sprint 2: HU-007 a HU-013)', () => {
       fecha_termino_programada: '2027-05-31',
     };
 
+    it('debe rechazar fecha_inicio_programada si es una fecha pasada', async () => {
+      const pastDateDto = {
+        ...validDto,
+        fecha_inicio_programada: '2020-01-01',
+        fecha_termino_programada: '2027-01-01',
+      };
+
+      await expect(obrasService.create(pastDateDto)).rejects.toThrow(
+        /fecha pasada/,
+      );
+    });
+
+    it('debe rechazar porcentaje_anticipo si excede el 30%', async () => {
+      const badAnticipoDto = {
+        ...validDto,
+        porcentaje_anticipo: 35.0,
+      };
+
+      await expect(obrasService.create(badAnticipoDto)).rejects.toThrow(
+        /entre 0% y 30%/,
+      );
+    });
+
     it('HU-009: debe rechazar fechas inconsistentes si fecha_termino < fecha_inicio', async () => {
       const invalidDatesDto = {
         ...validDto,

@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS obras (
     nombre_obra VARCHAR(255) NOT NULL,
     numero_contrato VARCHAR(100) UNIQUE NOT NULL,
     presupuesto_autorizado NUMERIC(14, 2) NOT NULL CHECK (presupuesto_autorizado > 0),
-    porcentaje_anticipo NUMERIC(5, 2) NOT NULL DEFAULT 30.00 CHECK (porcentaje_anticipo >= 0 AND porcentaje_anticipo <= 50),
+    porcentaje_anticipo NUMERIC(5, 2) NOT NULL DEFAULT 30.00 CHECK (porcentaje_anticipo >= 0 AND porcentaje_anticipo <= 30.00),
     fecha_inicio_programada DATE NOT NULL,
     fecha_termino_programada DATE NOT NULL,
     estatus VARCHAR(30) NOT NULL DEFAULT 'EN_EJECUCION' 
