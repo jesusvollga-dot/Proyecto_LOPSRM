@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS asignaciones_obra (
 -- ============================================================================
 -- 5. TABLA: CATÁLOGOS DE CONCEPTOS
 -- Gestión triple de catálogos: Original, Modificado y Extraordinario (RF-08).
+-- Sprint 3 (HU-014 a HU-019): Soporte de bloqueo e inmutabilidad legal.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS catalogos (
     id_catalogo SERIAL PRIMARY KEY,
@@ -81,17 +82,52 @@ CREATE TABLE IF NOT EXISTS catalogos (
     version INT NOT NULL DEFAULT 1 CHECK (version >= 1),
     estatus_aprobacion VARCHAR(30) NOT NULL DEFAULT 'BORRADOR' 
         CHECK (estatus_aprobacion IN ('BORRADOR', 'AUTORIZADO', 'BLOQUEADO')),
+    fecha_bloqueo TIMESTAMP WITH TIME ZONE,
+    bloqueado_por INT REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- ============================================================================
+-- 5.1 TABLA: PARTIDAS DEL CATÁLOGO ORIGINAL (HU-014)
+-- Agrupación estructural de conceptos de obra pública.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS partidas (
+    id_partida SERIAL PRIMARY KEY,
+    id_catalogo INT NOT NULL REFERENCES catalogos(id_catalogo) ON DELETE RESTRICT,
+    codigo_partida VARCHAR(50) NOT NULL,
+    nombre_partida VARCHAR(150) NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_catalogo_codigo_partida UNIQUE (id_catalogo, codigo_partida)
+);
+
+-- ============================================================================
+-- 5.2 TABLA: SUBPARTIDAS ASOCIADAS A UNA PARTIDA (HU-015)
+-- Relación jerárquica para organización detallada del catálogo.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS subpartidas (
+    id_subpartida SERIAL PRIMARY KEY,
+    id_partida INT NOT NULL REFERENCES partidas(id_partida) ON DELETE RESTRICT,
+    codigo_subpartida VARCHAR(50) NOT NULL,
+    nombre_subpartida VARCHAR(150) NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_partida_codigo_subpartida UNIQUE (id_partida, codigo_subpartida)
+);
+
+-- ============================================================================
 -- 6. TABLA: CONCEPTOS DE TRABAJO (MATRIZ DE PRECIOS UNITARIOS)
 -- Importe calculado automáticamente: Cantidad * Costo Directo Unitario (RF-06, RF-07).
+-- Sprint 3 (HU-016, HU-017): ID único y captura integral de datos requeridos.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS conceptos (
     id_concepto SERIAL PRIMARY KEY,
     id_catalogo INT NOT NULL REFERENCES catalogos(id_catalogo) ON DELETE RESTRICT,
+    id_partida INT REFERENCES partidas(id_partida) ON DELETE SET NULL,
+    id_subpartida INT REFERENCES subpartidas(id_subpartida) ON DELETE SET NULL,
     partida VARCHAR(100) NOT NULL,
     subpartida VARCHAR(100),
     clave_concepto VARCHAR(50) NOT NULL,

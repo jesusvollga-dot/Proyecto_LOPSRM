@@ -24,6 +24,10 @@ import {
   Landmark,
   ShieldCheck,
   X,
+  FileSpreadsheet,
+  Layers,
+  Hash,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface Role {
@@ -72,6 +76,60 @@ interface CandidatosCuadrilla {
   supervisores: UserProfile[];
 }
 
+// ============================================================================
+// Sprint 3: Catálogo Original (HU-014 a HU-019)
+// ============================================================================
+interface SubpartidaItem {
+  id_subpartida: number;
+  id_partida: number;
+  codigo_subpartida: string;
+  nombre_subpartida: string;
+  descripcion?: string | null;
+  activo: boolean;
+}
+
+interface PartidaItem {
+  id_partida: number;
+  id_catalogo: number;
+  codigo_partida: string;
+  nombre_partida: string;
+  descripcion?: string | null;
+  activo: boolean;
+  subpartidas?: SubpartidaItem[];
+}
+
+interface ConceptoItem {
+  id_concepto: number;
+  id_catalogo: number;
+  id_partida?: number | null;
+  id_subpartida?: number | null;
+  partida: string;
+  subpartida?: string | null;
+  clave_concepto: string;
+  descripcion: string;
+  unidad_medida: string;
+  cantidad: number;
+  costo_directo_unitario: number;
+  importe_costo_directo?: number;
+  porcentaje_incidencia?: number;
+  activo: boolean;
+}
+
+interface CatalogoItem {
+  id_catalogo: number;
+  id_obra: number;
+  tipo_catalogo: 'ORIGINAL' | 'MODIFICADO' | 'EXTRAORDINARIO';
+  version: number;
+  estatus_aprobacion: 'BORRADOR' | 'AUTORIZADO' | 'BLOQUEADO';
+  fecha_bloqueo?: string | null;
+  bloqueado_por?: number | null;
+  usuario_bloqueo?: UserProfile | null;
+  fecha_creacion: string;
+  activo: boolean;
+  partidas?: PartidaItem[];
+  conceptos?: ConceptoItem[];
+}
+
 export default function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('lopsrm_token'));
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
@@ -109,6 +167,43 @@ export default function App() {
   });
   const [isCreateObraModalOpen, setIsCreateObraModalOpen] = useState(false);
   const [selectedObraForCuadrilla, setSelectedObraForCuadrilla] = useState<Obra | null>(null);
+
+  // Sprint 3: Catálogo Original state (HU-014 a HU-019)
+  const [selectedObraForCatalogo, setSelectedObraForCatalogo] = useState<Obra | null>(null);
+  const [catalogoActual, setCatalogoActual] = useState<CatalogoItem | null>(null);
+  const [loadingCatalogo, setLoadingCatalogo] = useState(false);
+  const [catalogoMsg, setCatalogoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Modales Sprint 3
+  const [isPartidaModalOpen, setIsPartidaModalOpen] = useState(false);
+  const [isSubpartidaModalOpen, setIsSubpartidaModalOpen] = useState(false);
+  const [isConceptoModalOpen, setIsConceptoModalOpen] = useState(false);
+  const [isBloquearModalOpen, setIsBloquearModalOpen] = useState(false);
+
+  // Formulario Partida (HU-014)
+  const [codigoPartida, setCodigoPartida] = useState('');
+  const [nombrePartida, setNombrePartida] = useState('');
+  const [descPartida, setDescPartida] = useState('');
+
+  // Formulario Subpartida (HU-015)
+  const [selectedPartidaId, setSelectedPartidaId] = useState<number | ''>('');
+  const [codigoSubpartida, setCodigoSubpartida] = useState('');
+  const [nombreSubpartida, setNombreSubpartida] = useState('');
+  const [descSubpartida, setDescSubpartida] = useState('');
+
+  // Formulario Concepto (HU-016 y HU-017)
+  const [conceptoPartidaId, setConceptoPartidaId] = useState<number | ''>('');
+  const [conceptoSubpartidaId, setConceptoSubpartidaId] = useState<number | ''>('');
+  const [claveConcepto, setClaveConcepto] = useState('');
+  const [descConcepto, setDescConcepto] = useState('');
+  const [unidadMedida, setUnidadMedida] = useState('M3');
+  const [cantidadConcepto, setCantidadConcepto] = useState<number | ''>('');
+  const [punitarioConcepto, setPunitarioConcepto] = useState<number | ''>('');
+
+  // Bloqueo (HU-018)
+  const [motivoBloqueo, setMotivoBloqueo] = useState(
+    'Revisión final de proyecto ejecutivo y matriz de precios unitarios autorizada conforme a la LOPSRM.',
+  );
 
   // Formulario Alta de Obra (HU-007, HU-008, HU-009)
   const [claveObra, setClaveObra] = useState('');
@@ -489,6 +584,252 @@ export default function App() {
       }
     } catch {
       console.error('Error al actualizar estatus de obra');
+    }
+  };
+
+  // =========================================================================
+  // Sprint 3: Handlers de Catálogo Original (HU-014 a HU-019)
+  // =========================================================================
+
+  // Cargar catálogo original activo por obra
+  const fetchCatalogoPorObra = useCallback(async (idObra: number) => {
+    if (!token) return;
+    setLoadingCatalogo(true);
+    setCatalogoMsg(null);
+    try {
+      const res = await fetch(`/api/v1/catalogos/obra/${idObra}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCatalogoActual(data);
+      } else if (res.status === 404) {
+        setCatalogoActual(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al consultar catálogo.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de conexión al cargar catálogo.' });
+    } finally {
+      setLoadingCatalogo(false);
+    }
+  }, [token]);
+
+  const openCatalogoModal = (obra: Obra) => {
+    setSelectedObraForCatalogo(obra);
+    setCatalogoMsg(null);
+    fetchCatalogoPorObra(obra.id_obra);
+  };
+
+  // Crear catálogo original en borrador
+  const handleCrearCatalogoOriginal = async () => {
+    if (!token || !selectedObraForCatalogo) return;
+    setLoadingCatalogo(true);
+    try {
+      const res = await fetch(`/api/v1/catalogos/obra/${selectedObraForCatalogo.id_obra}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCatalogoActual(data);
+        setCatalogoMsg({ type: 'success', text: 'Catálogo original inicializado en estado BORRADOR.' });
+        fetchCatalogoPorObra(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'No se pudo crear el catálogo.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de conexión al inicializar catálogo.' });
+    } finally {
+      setLoadingCatalogo(false);
+    }
+  };
+
+  // HU-014: Registrar partida
+  const handleCrearPartida = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !catalogoActual) return;
+    try {
+      const res = await fetch(`/api/v1/catalogos/${catalogoActual.id_catalogo}/partidas`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          codigo_partida: codigoPartida.trim().toUpperCase(),
+          nombre_partida: nombrePartida.trim(),
+          descripcion: descPartida.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        setCodigoPartida('');
+        setNombrePartida('');
+        setDescPartida('');
+        setIsPartidaModalOpen(false);
+        setCatalogoMsg({ type: 'success', text: 'HU-014: Partida registrada exitosamente en el catálogo original.' });
+        if (selectedObraForCatalogo) fetchCatalogoPorObra(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al registrar partida.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al registrar partida.' });
+    }
+  };
+
+  // HU-015: Registrar subpartida
+  const handleCrearSubpartida = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !catalogoActual || !selectedPartidaId) return;
+    try {
+      const res = await fetch(
+        `/api/v1/catalogos/${catalogoActual.id_catalogo}/partidas/${selectedPartidaId}/subpartidas`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            codigo_subpartida: codigoSubpartida.trim().toUpperCase(),
+            nombre_subpartida: nombreSubpartida.trim(),
+            descripcion: descSubpartida.trim() || undefined,
+          }),
+        },
+      );
+      if (res.ok) {
+        setCodigoSubpartida('');
+        setNombreSubpartida('');
+        setDescSubpartida('');
+        setSelectedPartidaId('');
+        setIsSubpartidaModalOpen(false);
+        setCatalogoMsg({ type: 'success', text: 'HU-015: Subpartida asociada a la partida correctamente.' });
+        if (selectedObraForCatalogo) fetchCatalogoPorObra(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al registrar subpartida.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al registrar subpartida.' });
+    }
+  };
+
+  // HU-016: Sugerir ID / Clave única de concepto
+  const handleSugerirClave = (partidaId: number | '') => {
+    if (!partidaId || !catalogoActual) return;
+    const partidaObj = catalogoActual.partidas?.find((p) => p.id_partida === Number(partidaId));
+    const prefix = partidaObj?.codigo_partida || 'CONC';
+    const totalEnPartida = (catalogoActual.conceptos || []).filter(
+      (c) => c.id_partida === Number(partidaId),
+    ).length;
+    const sugerida = `${prefix}-${String(totalEnPartida + 1).padStart(3, '0')}`;
+    setClaveConcepto(sugerida);
+  };
+
+  // HU-016 y HU-017: Capturar Concepto
+  const handleCrearConcepto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !catalogoActual) return;
+    try {
+      const payload: any = {
+        clave_concepto: claveConcepto.trim().toUpperCase(),
+        descripcion: descConcepto.trim(),
+        unidad_medida: unidadMedida.trim().toUpperCase(),
+        cantidad: Number(cantidadConcepto),
+        costo_directo_unitario: Number(punitarioConcepto),
+      };
+      if (conceptoPartidaId) payload.id_partida = Number(conceptoPartidaId);
+      if (conceptoSubpartidaId) payload.id_subpartida = Number(conceptoSubpartidaId);
+
+      const res = await fetch(`/api/v1/catalogos/${catalogoActual.id_catalogo}/conceptos`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setClaveConcepto('');
+        setDescConcepto('');
+        setCantidadConcepto('');
+        setPunitarioConcepto('');
+        setConceptoSubpartidaId('');
+        setIsConceptoModalOpen(false);
+        setCatalogoMsg({
+          type: 'success',
+          text: 'HU-016/HU-017: Concepto guardado con ID único e importe calculado automáticamente.',
+        });
+        if (selectedObraForCatalogo) fetchCatalogoPorObra(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al guardar concepto.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al guardar concepto.' });
+    }
+  };
+
+  // HU-018: Bloquear catálogo original
+  const handleBloquearCatalogo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !catalogoActual) return;
+    try {
+      const res = await fetch(`/api/v1/catalogos/${catalogoActual.id_catalogo}/bloquear`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ motivo: motivoBloqueo }),
+      });
+      if (res.ok) {
+        setIsBloquearModalOpen(false);
+        setCatalogoMsg({
+          type: 'success',
+          text: 'HU-018: Catálogo original finalizado y BLOQUEADO formalmente. Se impiden modificaciones directas (HU-019).',
+        });
+        if (selectedObraForCatalogo) fetchCatalogoPorObra(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al bloquear catálogo.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al bloquear catálogo.' });
+    }
+  };
+
+  // HU-019: Intento de desactivar/modificar (validación y rechazo si bloqueado)
+  const handleDesactivarConcepto = async (idConcepto: number) => {
+    if (!token || !catalogoActual) return;
+    if (catalogoActual.estatus_aprobacion === 'BLOQUEADO') {
+      setCatalogoMsg({
+        type: 'error',
+        text: 'HU-019: ACCIÓN DENEGADA. El catálogo original está BLOQUEADO conforme al Art. 59 LOPSRM. Se rechaza cualquier modificación directa.',
+      });
+      return;
+    }
+    if (!confirm('¿Desea desactivar este concepto del catálogo original?')) return;
+    try {
+      const res = await fetch(
+        `/api/v1/catalogos/${catalogoActual.id_catalogo}/conceptos/${idConcepto}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (res.ok) {
+        setCatalogoMsg({ type: 'success', text: 'Concepto desactivado correctamente.' });
+        if (selectedObraForCatalogo) fetchCatalogoPorObra(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al eliminar concepto.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al eliminar concepto.' });
     }
   };
 
@@ -1030,6 +1371,15 @@ export default function App() {
                                 </div>
 
                                 <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => openCatalogoModal(obra)}
+                                    className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center space-x-1 shadow-sm"
+                                    title="Consultar y estructurar el catálogo de conceptos del contrato"
+                                  >
+                                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                                    <span>Catálogo Original (Sprint 3)</span>
+                                  </button>
+
                                   <button
                                     onClick={() => setSelectedObraForCuadrilla(obra)}
                                     className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center space-x-1 shadow-sm"
@@ -1807,6 +2157,16 @@ export default function App() {
                               )}
                             </div>
                           </div>
+
+                          <div className="pt-2 border-t border-slate-100">
+                            <button
+                              onClick={() => openCatalogoModal(obra)}
+                              className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center justify-center space-x-1.5 shadow-xs"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5" />
+                              <span>Catálogo Original de Conceptos (Sprint 3)</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -1947,6 +2307,892 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* ========================================================================= */}
+      {/* SPRINT 3: MODALES HU-014, HU-015, HU-016/017, HU-018                       */}
+      {/* ========================================================================= */}
+
+      {/* MODAL HU-014: REGISTRAR PARTIDA */}
+      {isPartidaModalOpen && catalogoActual && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center">
+                <Layers className="w-5 h-5 text-slate-700 mr-2" /> HU-014: Registrar Partida
+              </h3>
+              <button onClick={() => setIsPartidaModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearPartida} className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Código de Partida (Identificador)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={codigoPartida}
+                  onChange={(e) => setCodigoPartida(e.target.value.toUpperCase())}
+                  placeholder="EJ: PREL, CIMENT, ESTR, ALB"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none uppercase"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Debe ser único dentro de este catálogo original.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Nombre de la Partida
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={nombrePartida}
+                  onChange={(e) => setNombrePartida(e.target.value)}
+                  placeholder="EJ: Trabajos Preliminares"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Descripción (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={descPartida}
+                  onChange={(e) => setDescPartida(e.target.value)}
+                  placeholder="Alcance general de los trabajos de esta partida..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsPartidaModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm"
+                >
+                  Guardar Partida
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HU-015: REGISTRAR SUBPARTIDA */}
+      {isSubpartidaModalOpen && catalogoActual && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center">
+                <PlusCircle className="w-5 h-5 text-blue-600 mr-2" /> HU-015: Registrar Subpartida
+              </h3>
+              <button onClick={() => setIsSubpartidaModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearSubpartida} className="mt-4 space-y-4 text-xs">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Partida Asociada
+                </label>
+                <select
+                  required
+                  value={selectedPartidaId}
+                  onChange={(e) => setSelectedPartidaId(Number(e.target.value))}
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                >
+                  <option value="">-- Seleccione una Partida --</option>
+                  {(catalogoActual.partidas || []).map((p) => (
+                    <option key={p.id_partida} value={p.id_partida}>
+                      {p.codigo_partida} — {p.nombre_partida}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Código de Subpartida
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={codigoSubpartida}
+                  onChange={(e) => setCodigoSubpartida(e.target.value.toUpperCase())}
+                  placeholder="EJ: TRAZO, DEMOL, EXCAV"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-blue-500 outline-none uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Nombre de la Subpartida
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={nombreSubpartida}
+                  onChange={(e) => setNombreSubpartida(e.target.value)}
+                  placeholder="EJ: Trazo y Nivelación"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Descripción (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={descSubpartida}
+                  onChange={(e) => setDescSubpartida(e.target.value)}
+                  placeholder="Detalle de trabajos específicos..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSubpartidaModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                >
+                  Guardar Subpartida
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HU-016 y HU-017: CAPTURAR CONCEPTO CON ID ÚNICO */}
+      {isConceptoModalOpen && catalogoActual && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center">
+                  <Hash className="w-5 h-5 text-emerald-600 mr-2" /> HU-016 & HU-017: Capturar Concepto de Obra
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Asignación de ID único y registro de matriz de precios unitarios
+                </p>
+              </div>
+              <button onClick={() => setIsConceptoModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearConcepto} className="mt-4 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Partida Correspondiente
+                  </label>
+                  <select
+                    value={conceptoPartidaId}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? '' : Number(e.target.value);
+                      setConceptoPartidaId(val);
+                      setConceptoSubpartidaId('');
+                      handleSugerirClave(val);
+                    }}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                  >
+                    <option value="">-- Sin Partida / General --</option>
+                    {(catalogoActual.partidas || []).map((p) => (
+                      <option key={p.id_partida} value={p.id_partida}>
+                        {p.codigo_partida} — {p.nombre_partida}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Subpartida (Opcional)
+                  </label>
+                  <select
+                    value={conceptoSubpartidaId}
+                    onChange={(e) => setConceptoSubpartidaId(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                  >
+                    <option value="">-- Sin Subpartida --</option>
+                    {(
+                      catalogoActual.partidas?.find((p) => p.id_partida === Number(conceptoPartidaId))?.subpartidas || []
+                    ).map((s) => (
+                      <option key={s.id_subpartida} value={s.id_subpartida}>
+                        {s.codigo_subpartida} — {s.nombre_subpartida}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* HU-016: Formato de ID y unicidad */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                    ID Único / Clave del Concepto (HU-016)
+                  </label>
+                  {conceptoPartidaId && (
+                    <button
+                      type="button"
+                      onClick={() => handleSugerirClave(conceptoPartidaId)}
+                      className="text-[11px] text-emerald-700 font-semibold hover:underline"
+                    >
+                      ⚡ Generar ID Automático
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  required
+                  value={claveConcepto}
+                  onChange={(e) => setClaveConcepto(e.target.value.toUpperCase())}
+                  placeholder="EJ: PREL-001, CIM-ZAP-01"
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none uppercase"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Identificador irrepetible exigido por norma para control de estimaciones.
+                </span>
+              </div>
+
+              {/* HU-017: Captura de datos */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Descripción Detallada del Concepto
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={descConcepto}
+                  onChange={(e) => setDescConcepto(e.target.value)}
+                  placeholder="Excavación a mano para zapatas y zanjas en material tipo II hasta 2.00 m de profundidad, incluye afine de taludes, acarreo libre y herramienta..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Unidad de Medida
+                  </label>
+                  <select
+                    value={unidadMedida}
+                    onChange={(e) => setUnidadMedida(e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                  >
+                    <option value="M3">M3 (Metro cúbico)</option>
+                    <option value="M2">M2 (Metro cuadrado)</option>
+                    <option value="ML">ML (Metro lineal)</option>
+                    <option value="PZA">PZA (Pieza)</option>
+                    <option value="KG">KG (Kilogramo)</option>
+                    <option value="TON">TON (Tonelada)</option>
+                    <option value="LOTE">LOTE (Lote)</option>
+                    <option value="VIAJE">VIAJE (Viaje)</option>
+                    <option value="SALIDA">SALIDA (Salida)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Cantidad Proyectada
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={cantidadConcepto}
+                    onChange={(e) => setCantidadConcepto(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="150.00"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Costo Directo P.U. ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={punitarioConcepto}
+                    onChange={(e) => setPunitarioConcepto(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="345.50"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Previsualización del Importe Calculado */}
+              <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 flex items-center justify-between">
+                <div>
+                  <span className="text-emerald-900 font-semibold block text-[11px]">
+                    Importe Calculado Automáticamente (RF-06):
+                  </span>
+                  <span className="text-slate-500 text-[10px]">
+                    {cantidadConcepto || 0} {unidadMedida} × {formatMoney(Number(punitarioConcepto) || 0)}
+                  </span>
+                </div>
+                <div className="text-sm font-bold font-mono text-emerald-800">
+                  {formatMoney((Number(cantidadConcepto) || 0) * (Number(punitarioConcepto) || 0))}
+                </div>
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsConceptoModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm"
+                >
+                  Guardar Concepto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HU-018: BLOQUEAR CATÁLOGO ORIGINAL */}
+      {isBloquearModalOpen && catalogoActual && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-rose-800 flex items-center">
+                <Lock className="w-5 h-5 mr-2 text-rose-600" /> HU-018: Bloquear Catálogo Original
+              </h3>
+              <button onClick={() => setIsBloquearModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleBloquearCatalogo} className="mt-4 space-y-4 text-xs">
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 space-y-2">
+                <span className="font-bold flex items-center">
+                  <AlertTriangle className="w-4 h-4 mr-1.5 text-rose-600" />
+                  ADVERTENCIA DE INMUTABILIDAD LEGAL (LOPSRM)
+                </span>
+                <p className="text-[11px] leading-relaxed">
+                  Una vez bloqueado, el catálogo original <strong>NO PODRÁ SER MODIFICADO DIRECTAMENTE</strong>.
+                  Se impedirán altas, bajas y cambios de importes o descripciones (HU-019). Esta acción formaliza la propuesta
+                  económica de licitación o contrato.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Motivo u Observaciones de la Formalización
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={motivoBloqueo}
+                  onChange={(e) => setMotivoBloqueo(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsBloquearModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm"
+                >
+                  Confirmar y Bloquear
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL PRINCIPAL: GESTIÓN DE CATÁLOGO ORIGINAL (SPRINT 3: HU-014 A HU-019)  */}
+      {/* ========================================================================= */}
+      {selectedObraForCatalogo && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-50">
+          <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[95vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Header del Modal */}
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-900 text-white flex items-center justify-between">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-600 font-bold">
+                    {selectedObraForCatalogo.clave_obra}
+                  </span>
+                  <span className="text-xs text-slate-300 font-mono">
+                    Contrato: {selectedObraForCatalogo.numero_contrato}
+                  </span>
+                  {catalogoActual && (
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center space-x-1 ${
+                        catalogoActual.estatus_aprobacion === 'BLOQUEADO'
+                          ? 'bg-rose-500 text-white'
+                          : 'bg-amber-400 text-slate-950'
+                      }`}
+                    >
+                      {catalogoActual.estatus_aprobacion === 'BLOQUEADO' ? (
+                        <>
+                          <Lock className="w-3 h-3 mr-1" /> BLOQUEADO E INMUTABLE
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3 h-3 mr-1" /> BORRADOR (EN CAPTURA)
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+                <h3 className="text-base font-bold text-white mt-1">
+                  Catálogo Original de Conceptos — {selectedObraForCatalogo.nombre_obra}
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedObraForCatalogo(null);
+                  setCatalogoActual(null);
+                  setCatalogoMsg(null);
+                }}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Notification Alert */}
+            {catalogoMsg && (
+              <div
+                className={`px-6 py-3 text-xs border-b flex items-center justify-between ${
+                  catalogoMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  {catalogoMsg.type === 'success' ? (
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  )}
+                  <span>{catalogoMsg.text}</span>
+                </div>
+                <button
+                  onClick={() => setCatalogoMsg(null)}
+                  className="font-bold text-slate-400 hover:text-slate-700 ml-4"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Modal Body with Scroll */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {loadingCatalogo ? (
+                <div className="text-center py-20 text-slate-500">
+                  <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-sm font-semibold">Cargando catálogo original de la obra...</p>
+                </div>
+              ) : !catalogoActual ? (
+                /* Estado: Sin catálogo inicializado */
+                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-300 max-w-lg mx-auto p-8">
+                  <FileSpreadsheet className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <h4 className="font-bold text-slate-800 text-base">Catálogo Original No Inicializado</h4>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Esta obra pública no cuenta aún con un Catálogo Original activo. Conforme a las atribuciones del
+                    Superintendente (o Administrador), debe inicializar el catálogo en estado BORRADOR para estructurar las
+                    partidas y conceptos.
+                  </p>
+                  <button
+                    onClick={handleCrearCatalogoOriginal}
+                    className="mt-5 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition inline-flex items-center space-x-2"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Inicializar Catálogo Original (Borrador)</span>
+                  </button>
+                </div>
+              ) : (
+                /* Estado: Catálogo Activo */
+                <>
+                  {/* Banner Normativo de Inmutabilidad o Instrucción */}
+                  {catalogoActual.estatus_aprobacion === 'BLOQUEADO' ? (
+                    <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/80 flex items-start space-x-3 text-xs text-rose-900 shadow-xs">
+                      <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold uppercase tracking-wider text-rose-950 text-xs">
+                            HU-019 / Art. 59 LOPSRM: Catálogo Original Inmutable y Bloqueado
+                          </span>
+                          <span className="font-mono text-[11px] text-rose-700">
+                            Bloqueado el: {catalogoActual.fecha_bloqueo ? new Date(catalogoActual.fecha_bloqueo).toLocaleString('es-MX') : 'Fecha no registrada'}
+                          </span>
+                        </div>
+                        <p className="mt-1 leading-relaxed text-rose-800">
+                          El catálogo original ha sido finalizado y bloqueado para salvaguardar la propuesta económica
+                          original del contrato. Los intentos de modificación directa, adición o eliminación de partidas y
+                          conceptos son <strong>estrictamente rechazados por la API y la interfaz</strong>. Cualquier cambio de
+                          volúmenes o conceptos nuevos deberá registrarse en un Catálogo Modificado o Extraordinario.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 flex items-start space-x-3 text-xs text-amber-900 shadow-xs">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-bold uppercase tracking-wider text-amber-950 block">
+                          Sprint 3: Captura y Estructuración del Catálogo Original (Borrador)
+                        </span>
+                        <p className="mt-1 leading-relaxed text-amber-800">
+                          Como Superintendente, registre las <strong>Partidas</strong> (HU-014), <strong>Subpartidas</strong> (HU-015)
+                          y capture los <strong>Conceptos de Trabajo</strong> con su ID único y matriz de precios unitarios (HU-016 y HU-017).
+                          Al concluir la captura, utilice la opción de <strong>Bloqueo</strong> (HU-018) para formalizar la inmutabilidad legal.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resumen de Presupuesto y Métricas */}
+                  {(() => {
+                    const totalConceptos = catalogoActual.conceptos?.length || 0;
+                    const totalPartidas = catalogoActual.partidas?.length || 0;
+                    const importeTotal = (catalogoActual.conceptos || []).reduce(
+                      (acc, c) => acc + Number(c.importe_costo_directo || c.cantidad * c.costo_directo_unitario || 0),
+                      0,
+                    );
+                    const ptoAutorizado = Number(selectedObraForCatalogo.presupuesto_autorizado);
+                    const pctPresupuesto = ptoAutorizado > 0 ? (importeTotal / ptoAutorizado) * 100 : 0;
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs">
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                          <span className="text-slate-400 font-medium uppercase tracking-wider block">
+                            Partidas Estructuradas
+                          </span>
+                          <div className="text-xl font-bold text-slate-800 mt-1">{totalPartidas}</div>
+                          <span className="text-[11px] text-slate-500">Agrupaciones de obra (HU-014)</span>
+                        </div>
+
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                          <span className="text-slate-400 font-medium uppercase tracking-wider block">
+                            Conceptos Registrados
+                          </span>
+                          <div className="text-xl font-bold text-slate-800 mt-1">{totalConceptos}</div>
+                          <span className="text-[11px] text-slate-500">Con ID único asignado (HU-016)</span>
+                        </div>
+
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                          <span className="text-slate-400 font-medium uppercase tracking-wider block">
+                            Importe Total Catálogo ($)
+                          </span>
+                          <div className="text-base font-bold text-emerald-700 mt-1">
+                            {formatMoney(importeTotal)}
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            {pctPresupuesto.toFixed(2)}% del presupuesto contractual
+                          </span>
+                        </div>
+
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                          <span className="text-slate-400 font-medium uppercase tracking-wider block">
+                            Presupuesto Contractual
+                          </span>
+                          <div className="text-base font-bold text-slate-900 mt-1">
+                            {formatMoney(ptoAutorizado)}
+                          </div>
+                          <span className="text-[11px] text-slate-500">
+                            Diferencia: {formatMoney(ptoAutorizado - importeTotal)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Barra de Acciones del Catálogo */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => setIsPartidaModalOpen(true)}
+                        disabled={catalogoActual.estatus_aprobacion === 'BLOQUEADO'}
+                        className="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={
+                          catalogoActual.estatus_aprobacion === 'BLOQUEADO'
+                            ? 'Catálogo bloqueado — no se pueden agregar partidas (HU-019)'
+                            : 'HU-014: Registrar nueva partida'
+                        }
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>+ Registrar Partida (HU-014)</span>
+                      </button>
+
+                      <button
+                        onClick={() => setIsSubpartidaModalOpen(true)}
+                        disabled={
+                          catalogoActual.estatus_aprobacion === 'BLOQUEADO' ||
+                          !catalogoActual.partidas ||
+                          catalogoActual.partidas.length === 0
+                        }
+                        className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={
+                          catalogoActual.estatus_aprobacion === 'BLOQUEADO'
+                            ? 'Catálogo bloqueado — no se pueden agregar subpartidas (HU-019)'
+                            : !catalogoActual.partidas?.length
+                            ? 'Primero registre al menos una partida'
+                            : 'HU-015: Registrar subpartida dentro de una partida'
+                        }
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>+ Registrar Subpartida (HU-015)</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (catalogoActual.partidas && catalogoActual.partidas.length > 0) {
+                            setConceptoPartidaId(catalogoActual.partidas[0].id_partida);
+                            handleSugerirClave(catalogoActual.partidas[0].id_partida);
+                          }
+                          setIsConceptoModalOpen(true);
+                        }}
+                        disabled={
+                          catalogoActual.estatus_aprobacion === 'BLOQUEADO' ||
+                          !catalogoActual.partidas ||
+                          catalogoActual.partidas.length === 0
+                        }
+                        className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                        title={
+                          catalogoActual.estatus_aprobacion === 'BLOQUEADO'
+                            ? 'Catálogo bloqueado — no se pueden capturar conceptos (HU-019)'
+                            : !catalogoActual.partidas?.length
+                            ? 'Primero registre al menos una partida'
+                            : 'HU-016 y HU-017: Capturar concepto con ID único'
+                        }
+                      >
+                        <Hash className="w-3.5 h-3.5" />
+                        <span>+ Capturar Concepto (HU-016/017)</span>
+                      </button>
+                    </div>
+
+                    <div>
+                      {catalogoActual.estatus_aprobacion === 'BORRADOR' && (
+                        <button
+                          onClick={() => setIsBloquearModalOpen(true)}
+                          className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm"
+                          title="HU-018: Finalizar y bloquear catálogo original"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Bloquear Catálogo Original (HU-018)</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Árbol y Tabla Jerárquica de Partidas, Subpartidas y Conceptos */}
+                  <div className="space-y-4 pt-2">
+                    {(!catalogoActual.partidas || catalogoActual.partidas.length === 0) ? (
+                      <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                        <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                        <p className="text-sm font-semibold text-slate-700">Sin partidas registradas</p>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                          Comience agregando una partida para estructurar los conceptos de la obra (ej: PRELIMINARES, CIMENTACIÓN).
+                        </p>
+                      </div>
+                    ) : (
+                      catalogoActual.partidas.map((partida) => {
+                        const conceptosPartida = (catalogoActual.conceptos || []).filter(
+                          (c) => c.id_partida === partida.id_partida || c.partida === partida.nombre_partida,
+                        );
+                        const subpartidasPartida = partida.subpartidas || [];
+                        const subtotalPartida = conceptosPartida.reduce(
+                          (acc, c) => acc + Number(c.importe_costo_directo || c.cantidad * c.costo_directo_unitario || 0),
+                          0,
+                        );
+
+                        return (
+                          <div
+                            key={partida.id_partida}
+                            className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-xs"
+                          >
+                            {/* Cabecera de la Partida */}
+                            <div className="bg-slate-100/80 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-white">
+                                  {partida.codigo_partida}
+                                </span>
+                                <h4 className="font-bold text-slate-900 text-sm">{partida.nombre_partida}</h4>
+                                {partida.descripcion && (
+                                  <span className="text-xs text-slate-500 italic hidden md:inline">
+                                    — {partida.descripcion}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-3 text-xs">
+                                <span className="text-slate-500">
+                                  Subpartidas: <strong>{subpartidasPartida.length}</strong>
+                                </span>
+                                <span className="text-slate-500">
+                                  Conceptos: <strong>{conceptosPartida.length}</strong>
+                                </span>
+                                <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                                  Subtotal: {formatMoney(subtotalPartida)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Subpartidas de esta Partida */}
+                            {subpartidasPartida.length > 0 && (
+                              <div className="bg-slate-50/50 px-4 py-2 border-b border-slate-100 flex flex-wrap gap-2 text-xs">
+                                <span className="text-slate-400 font-semibold uppercase text-[10px] self-center">
+                                  Subpartidas asociadas (HU-015):
+                                </span>
+                                {subpartidasPartida.map((sub) => (
+                                  <span
+                                    key={sub.id_subpartida}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 text-[11px]"
+                                  >
+                                    <strong className="font-mono text-blue-700 mr-1">{sub.codigo_subpartida}</strong>{' '}
+                                    {sub.nombre_subpartida}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Conceptos dentro de la Partida */}
+                            {conceptosPartida.length === 0 ? (
+                              <div className="p-4 text-center text-xs text-slate-400 italic">
+                                No hay conceptos capturados para esta partida aún.
+                              </div>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                                    <tr>
+                                      <th className="py-2.5 px-4 font-semibold">ID / Clave (HU-016)</th>
+                                      <th className="py-2.5 px-4 font-semibold">Descripción del Concepto (HU-017)</th>
+                                      <th className="py-2.5 px-3 font-semibold text-center">Unidad</th>
+                                      <th className="py-2.5 px-3 font-semibold text-right">Cantidad</th>
+                                      <th className="py-2.5 px-3 font-semibold text-right">P.U. ($)</th>
+                                      <th className="py-2.5 px-4 font-semibold text-right">Importe ($)</th>
+                                      {catalogoActual.estatus_aprobacion !== 'BLOQUEADO' && (
+                                        <th className="py-2.5 px-3 font-semibold text-center">Acción</th>
+                                      )}
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100">
+                                    {conceptosPartida.map((conc) => {
+                                      const importeCalculado =
+                                        Number(conc.importe_costo_directo) ||
+                                        Number(conc.cantidad) * Number(conc.costo_directo_unitario);
+
+                                      return (
+                                        <tr key={conc.id_concepto} className="hover:bg-slate-50/70 transition">
+                                          <td className="py-2.5 px-4 font-mono font-bold text-blue-900 whitespace-nowrap">
+                                            {conc.clave_concepto}
+                                          </td>
+                                          <td className="py-2.5 px-4 text-slate-700 max-w-md">
+                                            <div>{conc.descripcion}</div>
+                                            {conc.subpartida && (
+                                              <span className="text-[10px] text-slate-400 block mt-0.5">
+                                                Subpartida: {conc.subpartida}
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2.5 px-3 font-mono text-center font-semibold text-slate-600">
+                                            {conc.unidad_medida}
+                                          </td>
+                                          <td className="py-2.5 px-3 font-mono text-right text-slate-800">
+                                            {Number(conc.cantidad).toLocaleString('es-MX', {
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                            })}
+                                          </td>
+                                          <td className="py-2.5 px-3 font-mono text-right text-slate-800">
+                                            {formatMoney(Number(conc.costo_directo_unitario))}
+                                          </td>
+                                          <td className="py-2.5 px-4 font-mono font-bold text-right text-emerald-800 whitespace-nowrap">
+                                            {formatMoney(importeCalculado)}
+                                          </td>
+                                          {catalogoActual.estatus_aprobacion !== 'BLOQUEADO' && (
+                                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                              <button
+                                                onClick={() => handleDesactivarConcepto(conc.id_concepto)}
+                                                className="text-rose-600 hover:text-rose-800 font-semibold text-[11px] hover:underline"
+                                                title="Desactivar concepto"
+                                              >
+                                                Eliminar
+                                              </button>
+                                            </td>
+                                          )}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
+              <span>
+                Sprint 3 • Catálogo Original de Obra Pública (HU-014 a HU-019 • Art. 59 LOPSRM)
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedObraForCatalogo(null);
+                  setCatalogoActual(null);
+                  setCatalogoMsg(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition"
+              >
+                Cerrar Catálogo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modales de Información Legal e Institucional CDMX */}
       {legalModalContent && (

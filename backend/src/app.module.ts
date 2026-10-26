@@ -10,6 +10,11 @@ import { Role } from './modules/users/entities/role.entity.js';
 import { ObrasModule } from './modules/obras/obras.module.js';
 import { Obra } from './modules/obras/entities/obra.entity.js';
 import { AsignacionObra } from './modules/obras/entities/asignacion-obra.entity.js';
+import { CatalogosModule } from './modules/catalogos/catalogos.module.js';
+import { Catalogo } from './modules/catalogos/entities/catalogo.entity.js';
+import { Partida } from './modules/catalogos/entities/partida.entity.js';
+import { Subpartida } from './modules/catalogos/entities/subpartida.entity.js';
+import { Concepto } from './modules/catalogos/entities/concepto.entity.js';
 
 @Module({
   imports: [
@@ -27,7 +32,7 @@ import { AsignacionObra } from './modules/obras/entities/asignacion-obra.entity.
         username: config.get<string>('DB_USERNAME', 'postgres'),
         password: config.get<string>('DB_PASSWORD', 'postgres'),
         database: config.get<string>('DB_DATABASE', 'lopsrm_db'),
-        entities: [User, Role, Obra, AsignacionObra],
+        entities: [User, Role, Obra, AsignacionObra, Catalogo, Partida, Subpartida, Concepto],
         autoLoadEntities: true,
         synchronize: false, // Desactivado para respetar schema.sql formal
       }),
@@ -35,6 +40,7 @@ import { AsignacionObra } from './modules/obras/entities/asignacion-obra.entity.
     UsersModule,
     AuthModule,
     ObrasModule,
+    CatalogosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
