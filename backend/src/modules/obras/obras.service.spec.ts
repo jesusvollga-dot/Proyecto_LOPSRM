@@ -76,7 +76,7 @@ describe('ObrasService (Sprint 2: HU-007 a HU-013)', () => {
       numero_contrato: 'DGCOP-LPN-045-2026',
       presupuesto_autorizado: 12500000.5,
       porcentaje_anticipo: 30.0,
-      fecha_inicio_programada: '2026-11-01',
+      fecha_inicio_programada: '2027-01-01',
       fecha_termino_programada: '2027-05-31',
     };
 

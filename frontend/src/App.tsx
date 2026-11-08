@@ -28,6 +28,16 @@ import {
   Layers,
   Hash,
   AlertTriangle,
+  History,
+  Sparkles,
+  ArrowRightLeft,
+  FileCheck,
+  Sun,
+  CloudRain,
+  Truck,
+  ClipboardList,
+  Eye,
+  Search,
 } from 'lucide-react';
 
 interface Role {
@@ -112,6 +122,8 @@ interface ConceptoItem {
   costo_directo_unitario: number;
   importe_costo_directo?: number;
   porcentaje_incidencia?: number;
+  es_extraordinario?: boolean;
+  id_concepto_origen?: number | null;
   activo: boolean;
 }
 
@@ -124,10 +136,163 @@ interface CatalogoItem {
   fecha_bloqueo?: string | null;
   bloqueado_por?: number | null;
   usuario_bloqueo?: UserProfile | null;
+  id_catalogo_origen?: number | null;
+  catalogo_origen?: CatalogoItem | null;
+  id_convenio?: number | null;
+  descripcion?: string | null;
   fecha_creacion: string;
   activo: boolean;
   partidas?: PartidaItem[];
   conceptos?: ConceptoItem[];
+}
+
+// ============================================================================
+// Sprint 5: Convenios y Auditoría (HU-027 a HU-033)
+// ============================================================================
+interface ConvenioItem {
+  id_convenio: number;
+  id_obra: number;
+  id_catalogo?: number | null;
+  numero_convenio: string;
+  tipo_convenio: 'MODIFICATORIO_VOLUMEN' | 'CONCEPTO_EXTRAORDINARIO' | 'PLAZO' | 'MIXTO';
+  descripcion: string;
+  fecha_firma: string;
+  monto_adicional: number;
+  porcentaje_variacion: number;
+  dias_ampliacion: number;
+  id_usuario_registro: number;
+  usuario_registro?: UserProfile;
+  catalogo?: CatalogoItem;
+  estatus: 'BORRADOR' | 'AUTORIZADO' | 'CANCELADO';
+  fecha_creacion: string;
+  activo: boolean;
+}
+
+interface HistorialItem {
+  id_historial: number;
+  id_concepto: number;
+  concepto?: ConceptoItem;
+  id_catalogo?: number | null;
+  catalogo?: CatalogoItem;
+  id_usuario_modifica: number;
+  usuario?: UserProfile;
+  fecha_modificacion: string;
+  campo_modificado: string;
+  valor_anterior?: string | null;
+  valor_nuevo?: string | null;
+  justificacion: string;
+  evento: string;
+}
+
+// ============================================================================
+// Sprint 6: Reporte Diario de Supervisión y Bitácora (HU-034 a HU-040)
+// ============================================================================
+interface PersonalCuadrillaItem {
+  categoria: string;
+  cantidad: number;
+  descripcion?: string;
+}
+
+interface MaquinariaSitioItem {
+  tipo: string;
+  cantidad: number;
+  horas_uso?: number;
+  estatus?: string;
+  descripcion?: string;
+}
+
+export const CATALOGO_CATEGORIAS_PERSONAL: string[] = [
+  'Cabos de Oficios / Sobrestantes',
+  'Albañiles / Oficiales de Albañilería',
+  'Fierreros / Habilitadores de Acero',
+  'Carpinteros de Obra Negra / Cimbreros',
+  'Peones / Ayudantes Generales',
+  'Electricistas / Oficiales Eléctricos',
+  'Plomeros / Instaladores Hidrosanitarios',
+  'Soldadores / Paileros',
+  'Operadores de Maquinaria Pesada',
+  'Topógrafos / Cadeneros',
+  'Pintores / Acabados',
+  'Yeseros / Tablarroqueros',
+  'Mecánicos de Equipo / Mantenimiento',
+  'Bodegueros / Almacenistas de Material',
+  'Rescatistas / Paramédicos de Sitio',
+  'Personal de Limpieza y Vialidad',
+  'Personal de Seguridad y Vigilancia',
+  'Otro (especificar)',
+];
+
+export const CATALOGO_MAQUINARIA_EQUIPO: string[] = [
+  'Retroexcavadora (ej. CAT 416 / 420)',
+  'Excavadora de Orugas (ej. CAT 320 / Komatsu PC200)',
+  'Camión de Volteo 14 m³',
+  'Camión de Volteo 7 m³',
+  'Camión Mezclador / Revolvedora (Trompo)',
+  'Motoconformadora / Niveladora (ej. CAT 120 / 140)',
+  'Vibrocompactador / Rodillo Liso',
+  'Compactador Pata de Cabra',
+  'Grúa Telescópica Móvil',
+  'Grúa Torre',
+  'Bomba de Concreto Hidráulica (Pluma / Estacionaria)',
+  'Minicargador (Bobcat)',
+  'Tractor de Orugas / Bulldozer (ej. CAT D6)',
+  'Pipa de Agua (10,000 / 20,000 L)',
+  'Planta Generadora de Luz (50 - 150 kVA)',
+  'Compresor Neumático de Aire',
+  'Torre de Iluminación Móvil',
+  'Revolvedora de 1 a 2 sacos (Equipo menor)',
+  'Bailarina / Compactador tipo pisón',
+  'Cortadora de Concreto / Disco Diamantado',
+  'Soldadora de Combustión',
+  'Andamio Colgante / Eléctrico',
+  'Camión Hiab con Brazo Articulado',
+  'Otro (especificar)',
+];
+
+interface FotoReporteItem {
+  id_foto?: number;
+  numero_foto: number;
+  url_archivo: string;
+  descripcion_foto?: string;
+}
+
+interface IncidenciaReporteItem {
+  id_incidencia?: number;
+  tipo: string;
+  descripcion: string;
+  acciones_a_seguir: string;
+  estatus?: string;
+  fecha_solucion?: string;
+}
+
+interface ReporteDiarioItem {
+  id_reporte: number;
+  id_obra: number;
+  obra?: Obra;
+  id_supervisor: number;
+  supervisor?: UserProfile;
+  fecha_reporte: string;
+  clima: string;
+  temperatura_celsius?: number | null;
+  observaciones_clima?: string | null;
+  senalamiento_preventivo: boolean;
+  equipo_proteccion_epp: boolean;
+  suministro_material: boolean;
+  estatus_personal: string;
+  condiciones_seguridad?: string | null;
+  checklist_seguridad?: Record<string, boolean> | null;
+  observaciones_seguridad?: string | null;
+  checklist_epp?: Record<string, boolean> | null;
+  observaciones_epp?: string | null;
+  resumen_cuadrilla?: PersonalCuadrillaItem[] | null;
+  maquinaria_sitio?: MaquinariaSitioItem[] | null;
+  actividades_realizadas?: string | null;
+  avance_fisico_acumulado: number;
+  fecha_estimada_fin?: string | null;
+  fecha_creacion: string;
+  activo: boolean;
+  fotos?: FotoReporteItem[];
+  incidencias?: IncidenciaReporteItem[];
 }
 
 export default function App() {
@@ -174,11 +339,57 @@ export default function App() {
   const [loadingCatalogo, setLoadingCatalogo] = useState(false);
   const [catalogoMsg, setCatalogoMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Sprint 5: Catálogos Modificados, Extraordinarios, Convenios y Auditoría (HU-027 a HU-033)
+  const [catalogosLista, setCatalogosLista] = useState<CatalogoItem[]>([]);
+  const [catalogoModalTab, setCatalogoModalTab] = useState<'CATALOGOS' | 'CONVENIOS' | 'AUDITORIA'>('CATALOGOS');
+  const [conveniosLista, setConveniosLista] = useState<ConvenioItem[]>([]);
+  const [loadingConvenios, setLoadingConvenios] = useState(false);
+  const [historialLista, setHistorialLista] = useState<HistorialItem[]>([]);
+  const [loadingAuditoria, setLoadingAuditoria] = useState(false);
+
   // Modales Sprint 3
   const [isPartidaModalOpen, setIsPartidaModalOpen] = useState(false);
   const [isSubpartidaModalOpen, setIsSubpartidaModalOpen] = useState(false);
   const [isConceptoModalOpen, setIsConceptoModalOpen] = useState(false);
   const [isBloquearModalOpen, setIsBloquearModalOpen] = useState(false);
+
+  // Modales Sprint 5
+  const [isCatalogoModificadoModalOpen, setIsCatalogoModificadoModalOpen] = useState(false);
+  const [isExtraordinarioModalOpen, setIsExtraordinarioModalOpen] = useState(false);
+  const [isConvenioModalOpen, setIsConvenioModalOpen] = useState(false);
+  const [isModificarVolumenModalOpen, setIsModificarVolumenModalOpen] = useState(false);
+
+  // Formulario Catálogo Modificado (HU-027)
+  const [descModificado, setDescModificado] = useState('');
+  const [convenioModificadoId, setConvenioModificadoId] = useState<number | ''>('');
+
+  // Formulario Concepto Extraordinario (HU-028)
+  const [claveExtra, setClaveExtra] = useState('');
+  const [descExtra, setDescExtra] = useState('');
+  const [unidadExtra, setUnidadExtra] = useState('M3');
+  const [cantidadExtra, setCantidadExtra] = useState<number | ''>('');
+  const [puExtra, setPuExtra] = useState<number | ''>('');
+  const [partidaExtra, setPartidaExtra] = useState('TRABAJOS EXTRAORDINARIOS');
+  const [justificacionExtra, setJustificacionExtra] = useState('');
+
+  // Formulario Convenio (HU-029)
+  const [numConvenio, setNumConvenio] = useState('');
+  const [tipoConvenio, setTipoConvenio] = useState<'MODIFICATORIO_VOLUMEN' | 'CONCEPTO_EXTRAORDINARIO' | 'PLAZO' | 'MIXTO'>('MODIFICATORIO_VOLUMEN');
+  const [descConvenio, setDescConvenio] = useState('');
+  const [fechaFirmaConvenio, setFechaFirmaConvenio] = useState(new Date().toISOString().split('T')[0]);
+  const [montoConvenio, setMontoConvenio] = useState<number | ''>('');
+  const [pctConvenio, setPctConvenio] = useState<number | ''>('');
+  const [diasConvenio, setDiasConvenio] = useState<number | ''>(0);
+  const [catalogoAsociadoConvenioId, setCatalogoAsociadoConvenioId] = useState<number | ''>('');
+
+  // Formulario Modificación de Volumen (HU-030/HU-031/HU-033)
+  const [conceptoParaModificar, setConceptoParaModificar] = useState<ConceptoItem | null>(null);
+  const [nuevaCantidadVolumen, setNuevaCantidadVolumen] = useState<number | ''>('');
+  const [justificacionVolumen, setJustificacionVolumen] = useState('');
+
+  // Filtros Auditoría (HU-032)
+  const [filtroAuditoriaTexto, setFiltroAuditoriaTexto] = useState('');
+  const [filtroAuditoriaEvento, setFiltroAuditoriaEvento] = useState('');
 
   // Formulario Partida (HU-014)
   const [codigoPartida, setCodigoPartida] = useState('');
@@ -221,6 +432,90 @@ export default function App() {
 
   // Fecha actual en formato YYYY-MM-DD para validación de fechas pasadas
   const todayStr = new Date().toISOString().split('T')[0];
+
+  // =========================================================================
+  // Sprint 6: Bitácora y Reportes Diarios de Supervisión (HU-034 a HU-040)
+  // =========================================================================
+  const [isBitacoraModalOpen, setIsBitacoraModalOpen] = useState(false);
+  const [selectedObraForBitacora, setSelectedObraForBitacora] = useState<Obra | null>(null);
+  const [reportesLista, setReportesLista] = useState<ReporteDiarioItem[]>([]);
+  const [loadingBitacora, setLoadingBitacora] = useState(false);
+  const [bitacoraMsg, setBitacoraMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Filtros Bitácora (HU-040)
+  const [filtroBitacoraFechaInicio, setFiltroBitacoraFechaInicio] = useState('');
+  const [filtroBitacoraFechaFin, setFiltroBitacoraFechaFin] = useState('');
+  const [filtroBitacoraClima, setFiltroBitacoraClima] = useState('');
+  const [filtroBitacoraObraId, setFiltroBitacoraObraId] = useState<number | ''>('');
+
+  // Modal Detalle de Reporte (HU-040)
+  const [reporteSeleccionadoDetalle, setReporteSeleccionadoDetalle] = useState<ReporteDiarioItem | null>(null);
+
+  // Modal Nuevo Reporte Diario (HU-034 a HU-039)
+  const [isNuevoReporteModalOpen, setIsNuevoReporteModalOpen] = useState(false);
+  const [reporteObraId, setReporteObraId] = useState<number | ''>('');
+  const [reporteFecha, setReporteFecha] = useState(todayStr);
+  const [reporteActividades, setReporteActividades] = useState('');
+  const [reporteAvanceFisico, setReporteAvanceFisico] = useState<number | ''>('');
+  const [ultimoAvanceObra, setUltimoAvanceObra] = useState<number>(0);
+
+  // Clima (HU-035)
+  const [reporteClima, setReporteClima] = useState('Soleado');
+  const [reporteTemperatura, setReporteTemperatura] = useState<number | ''>('');
+  const [reporteObservacionesClima, setReporteObservacionesClima] = useState('');
+
+  // Seguridad (HU-036)
+  const [reporteSenalamiento, setReporteSenalamiento] = useState(true);
+  const [reporteCondicionesSeguridad, setReporteCondicionesSeguridad] = useState('');
+  const [reporteChecklistSeguridad, setReporteChecklistSeguridad] = useState<Record<string, boolean>>({
+    senalizacion: true,
+    extintores: true,
+    botiquin: true,
+    orden_limpieza: true,
+  });
+  const [reporteObservacionesSeguridad, setReporteObservacionesSeguridad] = useState('');
+
+  // EPP (HU-037)
+  const [reporteCumplimientoEPP, setReporteCumplimientoEPP] = useState(true);
+  const [reporteChecklistEPP, setReporteChecklistEPP] = useState<Record<string, boolean>>({
+    casco: true,
+    chaleco: true,
+    botas: true,
+    guantes: true,
+    lentes: true,
+    arnes: false,
+  });
+  const [reporteObservacionesEPP, setReporteObservacionesEPP] = useState('');
+
+  // Personal / Cuadrilla (HU-038)
+  const [reporteEstatusPersonal, setReporteEstatusPersonal] = useState('Suficiente');
+  const [reporteCuadrilla, setReporteCuadrilla] = useState<PersonalCuadrillaItem[]>([
+    { categoria: 'Cabos de Oficios / Sobrestantes', cantidad: 1, descripcion: 'Control y trazo' },
+    { categoria: 'Albañiles / Oficiales de Albañilería', cantidad: 4, descripcion: 'Pegado de block y colado' },
+    { categoria: 'Peones / Ayudantes Generales', cantidad: 6, descripcion: 'Acarreo de materiales' },
+  ]);
+  const [categoriaPersonalSeleccionada, setCategoriaPersonalSeleccionada] = useState('');
+  const [categoriaPersonalOtro, setCategoriaPersonalOtro] = useState('');
+  const [nuevaCategoriaPersonal, setNuevaCategoriaPersonal] = useState('');
+  const [nuevaCantidadPersonal, setNuevaCantidadPersonal] = useState<number | ''>('');
+  const [nuevaDescripcionPersonal, setNuevaDescripcionPersonal] = useState('');
+
+  // Maquinaria (HU-039)
+  const [reporteMaquinaria, setReporteMaquinaria] = useState<MaquinariaSitioItem[]>([
+    { tipo: 'Retroexcavadora (ej. CAT 416 / 420)', cantidad: 1, horas_uso: 7, estatus: 'Operativa', descripcion: 'Excavación para cimentación' },
+  ]);
+  const [tipoMaquinariaSeleccionada, setTipoMaquinariaSeleccionada] = useState('');
+  const [tipoMaquinariaOtro, setTipoMaquinariaOtro] = useState('');
+  const [nuevoTipoMaquinaria, setNuevoTipoMaquinaria] = useState('');
+  const [nuevaCantidadMaquinaria, setNuevaCantidadMaquinaria] = useState<number | ''>('');
+  const [nuevasHorasMaquinaria, setNuevasHorasMaquinaria] = useState<number | ''>('');
+  const [nuevoEstatusMaquinaria, setNuevoEstatusMaquinaria] = useState('Operativa');
+  const [nuevaActividadMaquinaria, setNuevaActividadMaquinaria] = useState('');
+
+  // Fotos (RF-13)
+  const [reporteFotos, setReporteFotos] = useState<FotoReporteItem[]>([]);
+  const [nuevaFotoUrl, setNuevaFotoUrl] = useState('');
+  const [nuevaFotoDesc, setNuevaFotoDesc] = useState('');
 
   // Logout handler
   const handleLogout = useCallback(() => {
@@ -290,7 +585,10 @@ export default function App() {
       const res = await fetch('/api/v1/obras/mis-obras', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setMyWorksList(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setMyWorksList(Array.isArray(data) ? data : []);
+      }
     } catch {
       console.error('Error al consultar mis obras asignadas');
     }
@@ -616,10 +914,91 @@ export default function App() {
     }
   }, [token]);
 
+  // Sprint 5: Cargar todos los catálogos de la obra (Original, Modificados, Extraordinarios)
+  const fetchTodosCatalogos = useCallback(async (idObra: number) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/v1/catalogos/obra/${idObra}/todos`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCatalogosLista(data);
+      }
+    } catch {
+      console.error('Error al cargar lista de catálogos');
+    }
+  }, [token]);
+
+  // Sprint 5: Cargar convenios modificatorios de volumen de la obra (HU-029)
+  const fetchConvenios = useCallback(async (idObra: number) => {
+    if (!token) return;
+    setLoadingConvenios(true);
+    try {
+      const res = await fetch(`/api/v1/catalogos/obra/${idObra}/convenios`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConveniosLista(data);
+      }
+    } catch {
+      console.error('Error al cargar convenios de la obra');
+    } finally {
+      setLoadingConvenios(false);
+    }
+  }, [token]);
+
+  // Sprint 5: Cargar historial de modificaciones y auditoría consolidada (HU-032, HU-033)
+  const fetchAuditoria = useCallback(async (idObra: number) => {
+    if (!token) return;
+    setLoadingAuditoria(true);
+    try {
+      const res = await fetch(`/api/v1/catalogos/obra/${idObra}/auditoria`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHistorialLista(data);
+      }
+    } catch {
+      console.error('Error al cargar auditoría');
+    } finally {
+      setLoadingAuditoria(false);
+    }
+  }, [token]);
+
+  // Sprint 5: Seleccionar un catálogo específico por ID (Original, Modificado o Extraordinario)
+  const seleccionarCatalogoPorId = async (idCatalogo: number) => {
+    if (!token) return;
+    setLoadingCatalogo(true);
+    setCatalogoMsg(null);
+    try {
+      const res = await fetch(`/api/v1/catalogos/${idCatalogo}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCatalogoActual(data);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al cambiar de catálogo.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al consultar el catálogo seleccionado.' });
+    } finally {
+      setLoadingCatalogo(false);
+    }
+  };
+
   const openCatalogoModal = (obra: Obra) => {
     setSelectedObraForCatalogo(obra);
     setCatalogoMsg(null);
+    setCatalogoModalTab('CATALOGOS');
     fetchCatalogoPorObra(obra.id_obra);
+    fetchTodosCatalogos(obra.id_obra);
+    fetchConvenios(obra.id_obra);
+    fetchAuditoria(obra.id_obra);
   };
 
   // Crear catálogo original en borrador
@@ -833,6 +1212,484 @@ export default function App() {
     }
   };
 
+  // =========================================================================
+  // Sprint 5: Handlers HU-027 a HU-033
+  // =========================================================================
+
+  // HU-027: Crear catálogo modificado a partir del original
+  const handleCrearCatalogoModificado = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedObraForCatalogo) return;
+    setLoadingCatalogo(true);
+    try {
+      const payload: any = {
+        descripcion: descModificado.trim() || undefined,
+      };
+      if (convenioModificadoId) payload.id_convenio = Number(convenioModificadoId);
+
+      const res = await fetch(`/api/v1/catalogos/obra/${selectedObraForCatalogo.id_obra}/modificado`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const nuevoCat = await res.json();
+        setCatalogoActual(nuevoCat);
+        setIsCatalogoModificadoModalOpen(false);
+        setDescModificado('');
+        setConvenioModificadoId('');
+        setCatalogoMsg({
+          type: 'success',
+          text: `HU-027: Catálogo modificado Versión ${nuevoCat.version} creado exitosamente clonando la estructura base sin alterar el original.`,
+        });
+        fetchTodosCatalogos(selectedObraForCatalogo.id_obra);
+        fetchAuditoria(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al crear catálogo modificado.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de conexión al crear catálogo modificado.' });
+    } finally {
+      setLoadingCatalogo(false);
+    }
+  };
+
+  // HU-028: Registrar concepto extraordinario
+  const handleCrearExtraordinario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedObraForCatalogo) return;
+    try {
+      const payload = {
+        clave_concepto: claveExtra.trim().toUpperCase(),
+        descripcion: descExtra.trim(),
+        unidad_medida: unidadExtra.trim().toUpperCase(),
+        cantidad: Number(cantidadExtra),
+        costo_directo_unitario: Number(puExtra),
+        partida: partidaExtra.trim() || 'TRABAJOS EXTRAORDINARIOS',
+        justificacion: justificacionExtra.trim() || undefined,
+      };
+
+      const res = await fetch(`/api/v1/catalogos/obra/${selectedObraForCatalogo.id_obra}/extraordinarios`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const nuevoConc = await res.json();
+        setIsExtraordinarioModalOpen(false);
+        setClaveExtra('');
+        setDescExtra('');
+        setCantidadExtra('');
+        setPuExtra('');
+        setJustificacionExtra('');
+        setCatalogoMsg({
+          type: 'success',
+          text: `HU-028: Concepto extraordinario '${nuevoConc.clave_concepto}' registrado formalmente con importe calculado.`,
+        });
+        fetchTodosCatalogos(selectedObraForCatalogo.id_obra);
+        // Si estamos viendo el catálogo extraordinario, refrescarlo
+        if (catalogoActual?.id_catalogo === nuevoConc.id_catalogo) {
+          seleccionarCatalogoPorId(nuevoConc.id_catalogo);
+        } else {
+          seleccionarCatalogoPorId(nuevoConc.id_catalogo);
+        }
+        fetchAuditoria(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al registrar concepto extraordinario.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de conexión al registrar concepto extraordinario.' });
+    }
+  };
+
+  // HU-029: Registrar convenio relacionado con volumen
+  const handleCrearConvenio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !selectedObraForCatalogo) return;
+    try {
+      const payload: any = {
+        numero_convenio: numConvenio.trim().toUpperCase(),
+        tipo_convenio: tipoConvenio,
+        descripcion: descConvenio.trim(),
+        fecha_firma: fechaFirmaConvenio,
+        monto_adicional: Number(montoConvenio) || 0,
+        porcentaje_variacion: Number(pctConvenio) || 0,
+        dias_ampliacion: Number(diasConvenio) || 0,
+      };
+      if (catalogoAsociadoConvenioId) {
+        payload.id_catalogo = Number(catalogoAsociadoConvenioId);
+      }
+
+      const res = await fetch(`/api/v1/catalogos/obra/${selectedObraForCatalogo.id_obra}/convenios`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const nuevoConv = await res.json();
+        setIsConvenioModalOpen(false);
+        setNumConvenio('');
+        setDescConvenio('');
+        setMontoConvenio('');
+        setPctConvenio('');
+        setDiasConvenio(0);
+        setCatalogoAsociadoConvenioId('');
+        setCatalogoMsg({
+          type: 'success',
+          text: `HU-029: Convenio de volumen '${nuevoConv.numero_convenio}' registrado exitosamente y relacionado con la obra.`,
+        });
+        fetchConvenios(selectedObraForCatalogo.id_obra);
+        fetchTodosCatalogos(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al registrar convenio.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de red al registrar convenio.' });
+    }
+  };
+
+  // HU-030 / HU-031 / HU-033: Modificar cantidad de volumen con auditoría
+  const handleModificarCantidadVolumen = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !catalogoActual || !conceptoParaModificar) return;
+    try {
+      const res = await fetch(
+        `/api/v1/catalogos/${catalogoActual.id_catalogo}/conceptos/${conceptoParaModificar.id_concepto}/cantidad`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cantidad_nueva: Number(nuevaCantidadVolumen),
+            justificacion: justificacionVolumen.trim(),
+          }),
+        },
+      );
+
+      if (res.ok) {
+        const concActualizado = await res.json();
+        setIsModificarVolumenModalOpen(false);
+        setConceptoParaModificar(null);
+        setNuevaCantidadVolumen('');
+        setJustificacionVolumen('');
+        setCatalogoMsg({
+          type: 'success',
+          text: `HU-030/031: Volumen de '${concActualizado.clave_concepto}' modificado a ${concActualizado.cantidad}. Modificación registrada con auditoría y timestamp pericial.`,
+        });
+        seleccionarCatalogoPorId(catalogoActual.id_catalogo);
+        if (selectedObraForCatalogo) fetchAuditoria(selectedObraForCatalogo.id_obra);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCatalogoMsg({ type: 'error', text: err.message || 'Error al modificar volumen del concepto.' });
+      }
+    } catch {
+      setCatalogoMsg({ type: 'error', text: 'Error de conexión al modificar volumen.' });
+    }
+  };
+
+  // =========================================================================
+  // Sprint 6: Handlers de Bitácora y Reportes Diarios (HU-034 a HU-040)
+  // =========================================================================
+
+  // Consultar bitácora diaria con filtros (HU-040)
+  const fetchBitacora = useCallback(
+    async (idObra?: number, fechaInicio?: string, fechaFin?: string, clima?: string) => {
+      if (!token) return;
+      setLoadingBitacora(true);
+      try {
+        const params = new URLSearchParams();
+        if (idObra) params.append('id_obra', String(idObra));
+        if (fechaInicio) params.append('fecha_inicio', fechaInicio);
+        if (fechaFin) params.append('fecha_fin', fechaFin);
+        if (clima) params.append('clima', clima);
+
+        const url = `/api/v1/reportes?${params.toString()}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setReportesLista(Array.isArray(data) ? data : []);
+        } else {
+          setReportesLista([]);
+        }
+      } catch (err) {
+        console.error('Error al consultar bitácora diaria:', err);
+        setReportesLista([]);
+      } finally {
+        setLoadingBitacora(false);
+      }
+    },
+    [token],
+  );
+
+  // Abrir modal de bitácora
+  const openBitacoraModal = async (obra?: Obra) => {
+    setSelectedObraForBitacora(obra || null);
+    setFiltroBitacoraObraId(obra ? obra.id_obra : '');
+    setFiltroBitacoraFechaInicio('');
+    setFiltroBitacoraFechaFin('');
+    setFiltroBitacoraClima('');
+    setBitacoraMsg(null);
+    setIsBitacoraModalOpen(true);
+    await fetchBitacora(obra ? obra.id_obra : undefined);
+  };
+
+  // Abrir modal para nuevo reporte
+  const openNuevoReporteModal = async (obra?: Obra) => {
+    const targetObra = obra || selectedObraForBitacora;
+    const availableObras = obrasList.length > 0 ? obrasList : myWorksList;
+    const obraId = targetObra ? targetObra.id_obra : (availableObras[0]?.id_obra || '');
+    setReporteObraId(obraId);
+    setReporteFecha(todayStr);
+    setReporteActividades('');
+    setReporteClima('Soleado');
+    setReporteTemperatura('');
+    setReporteObservacionesClima('');
+    setReporteSenalamiento(true);
+    setReporteCondicionesSeguridad('Condiciones de obra adecuadas, señalización perimetral y pasillos despejados.');
+    setReporteChecklistSeguridad({
+      senalizacion: true,
+      extintores: true,
+      botiquin: true,
+      orden_limpieza: true,
+    });
+    setReporteObservacionesSeguridad('');
+    setReporteCumplimientoEPP(true);
+    setReporteChecklistEPP({
+      casco: true,
+      chaleco: true,
+      botas: true,
+      guantes: true,
+      lentes: true,
+      arnes: false,
+    });
+    setReporteObservacionesEPP('Personal con equipo de protección personal reglamentario.');
+    setReporteEstatusPersonal('Suficiente');
+    setReporteCuadrilla([
+      { categoria: 'Cabos de Oficios / Sobrestantes', cantidad: 1, descripcion: 'Control general y trazo' },
+      { categoria: 'Albañiles / Oficiales de Albañilería', cantidad: 4, descripcion: 'Pegado de block y colado' },
+      { categoria: 'Peones / Ayudantes Generales', cantidad: 6, descripcion: 'Acarreo de materiales y limpieza' },
+    ]);
+    setCategoriaPersonalSeleccionada('');
+    setCategoriaPersonalOtro('');
+    setNuevaCategoriaPersonal('');
+    setNuevaCantidadPersonal('');
+    setNuevaDescripcionPersonal('');
+    setReporteMaquinaria([
+      { tipo: 'Retroexcavadora (ej. CAT 416 / 420)', cantidad: 1, horas_uso: 7, estatus: 'Operativa', descripcion: 'Excavación para cimentación' },
+    ]);
+    setTipoMaquinariaSeleccionada('');
+    setTipoMaquinariaOtro('');
+    setNuevoTipoMaquinaria('');
+    setNuevaCantidadMaquinaria('');
+    setNuevasHorasMaquinaria('');
+    setNuevoEstatusMaquinaria('Operativa');
+    setNuevaActividadMaquinaria('');
+    setReporteFotos([]);
+    setNuevaFotoUrl('');
+    setNuevaFotoDesc('');
+
+    // Consultar último avance para sugerir
+    if (obraId) {
+      try {
+        const res = await fetch(`/api/v1/reportes/obra/${obraId}/ultimo`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const ultimo = await res.json();
+          if (ultimo && ultimo.avance_fisico_acumulado) {
+            setUltimoAvanceObra(Number(ultimo.avance_fisico_acumulado));
+            setReporteAvanceFisico(Number(ultimo.avance_fisico_acumulado));
+          } else {
+            setUltimoAvanceObra(0);
+            setReporteAvanceFisico(0);
+          }
+        }
+      } catch {
+        setUltimoAvanceObra(0);
+        setReporteAvanceFisico(0);
+      }
+    } else {
+      setUltimoAvanceObra(0);
+      setReporteAvanceFisico(0);
+    }
+
+    setIsNuevoReporteModalOpen(true);
+  };
+
+  // Guardar reporte diario (HU-034 a HU-039)
+  const handleGuardarReporteDiario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !reporteObraId) return;
+
+    if (!reporteActividades.trim()) {
+      setBitacoraMsg({ type: 'error', text: 'HU-034: La descripción de actividades realizadas es obligatoria.' });
+      return;
+    }
+
+    if (reporteAvanceFisico !== '' && Number(reporteAvanceFisico) < ultimoAvanceObra) {
+      setBitacoraMsg({
+        type: 'error',
+        text: `El avance físico (${reporteAvanceFisico}%) no puede ser inferior al último registrado (${ultimoAvanceObra}%).`,
+      });
+      return;
+    }
+
+    const payload = {
+      id_obra: Number(reporteObraId),
+      fecha_reporte: reporteFecha,
+      clima: reporteClima,
+      temperatura_celsius: reporteTemperatura !== '' ? Number(reporteTemperatura) : undefined,
+      observaciones_clima: reporteObservacionesClima.trim() || undefined,
+      senalamiento_preventivo: reporteSenalamiento,
+      condiciones_seguridad: reporteCondicionesSeguridad.trim() || undefined,
+      checklist_seguridad: reporteChecklistSeguridad,
+      observaciones_seguridad: reporteObservacionesSeguridad.trim() || undefined,
+      equipo_proteccion_epp: reporteCumplimientoEPP,
+      checklist_epp: reporteChecklistEPP,
+      observaciones_epp: reporteObservacionesEPP.trim() || undefined,
+      estatus_personal: reporteEstatusPersonal,
+      resumen_cuadrilla: reporteCuadrilla,
+      maquinaria_sitio: reporteMaquinaria,
+      actividades_realizadas: reporteActividades.trim(),
+      avance_fisico_acumulado: Number(reporteAvanceFisico) || 0,
+      fotos: reporteFotos.length > 0 ? reporteFotos : undefined,
+    };
+
+    try {
+      const res = await fetch('/api/v1/reportes', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const nuevoReporte = await res.json();
+        setIsNuevoReporteModalOpen(false);
+        setBitacoraMsg({
+          type: 'success',
+          text: `HU-034 a HU-039: Reporte diario del día ${nuevoReporte.fecha_reporte} registrado exitosamente en la bitácora de supervisión.`,
+        });
+        fetchBitacora(selectedObraForBitacora ? selectedObraForBitacora.id_obra : undefined);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setBitacoraMsg({ type: 'error', text: err.message || 'Error al guardar el reporte diario.' });
+      }
+    } catch {
+      setBitacoraMsg({ type: 'error', text: 'Error de red al guardar el reporte diario.' });
+    }
+  };
+
+  // Manejadores para cuadrillas de personal (HU-038)
+  const handleAgregarPersonalCuadrilla = () => {
+    let catFinal = '';
+    if (categoriaPersonalSeleccionada === 'Otro (especificar)') {
+      catFinal = categoriaPersonalOtro.trim();
+    } else if (categoriaPersonalSeleccionada.trim()) {
+      catFinal = categoriaPersonalSeleccionada.trim();
+    } else if (nuevaCategoriaPersonal.trim()) {
+      catFinal = nuevaCategoriaPersonal.trim();
+    }
+
+    if (!catFinal || nuevaCantidadPersonal === '' || Number(nuevaCantidadPersonal) <= 0) return;
+    setReporteCuadrilla((prev) => [
+      ...prev,
+      {
+        categoria: catFinal,
+        cantidad: Number(nuevaCantidadPersonal),
+        descripcion: nuevaDescripcionPersonal.trim() || undefined,
+      },
+    ]);
+    setCategoriaPersonalSeleccionada('');
+    setCategoriaPersonalOtro('');
+    setNuevaCategoriaPersonal('');
+    setNuevaCantidadPersonal('');
+    setNuevaDescripcionPersonal('');
+  };
+
+  const handleEliminarPersonalCuadrilla = (index: number) => {
+    setReporteCuadrilla((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  // Manejadores para maquinaria en sitio (HU-039)
+  const handleAgregarMaquinaria = () => {
+    let tipoFinal = '';
+    if (tipoMaquinariaSeleccionada === 'Otro (especificar)') {
+      tipoFinal = tipoMaquinariaOtro.trim();
+    } else if (tipoMaquinariaSeleccionada.trim()) {
+      tipoFinal = tipoMaquinariaSeleccionada.trim();
+    } else if (nuevoTipoMaquinaria.trim()) {
+      tipoFinal = nuevoTipoMaquinaria.trim();
+    }
+
+    if (!tipoFinal || nuevaCantidadMaquinaria === '' || Number(nuevaCantidadMaquinaria) <= 0) return;
+    setReporteMaquinaria((prev) => [
+      ...prev,
+      {
+        tipo: tipoFinal,
+        cantidad: Number(nuevaCantidadMaquinaria),
+        horas_uso: nuevasHorasMaquinaria !== '' ? Number(nuevasHorasMaquinaria) : 8,
+        estatus: nuevoEstatusMaquinaria || 'Operativa',
+        descripcion: nuevaActividadMaquinaria.trim() || undefined,
+      },
+    ]);
+    setTipoMaquinariaSeleccionada('');
+    setTipoMaquinariaOtro('');
+    setNuevoTipoMaquinaria('');
+    setNuevaCantidadMaquinaria('');
+    setNuevasHorasMaquinaria('');
+    setNuevoEstatusMaquinaria('Operativa');
+    setNuevaActividadMaquinaria('');
+  };
+
+  const handleEliminarMaquinaria = (index: number) => {
+    setReporteMaquinaria((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  // Manejadores de fotografías (RF-13)
+  const handleAgregarFoto = () => {
+    if (!nuevaFotoUrl.trim() || reporteFotos.length >= 6) return;
+    setReporteFotos((prev) => [
+      ...prev,
+      {
+        numero_foto: prev.length + 1,
+        url_archivo: nuevaFotoUrl.trim(),
+        descripcion_foto: nuevaFotoDesc.trim() || `Evidencia fotográfica ${prev.length + 1}`,
+      },
+    ]);
+    setNuevaFotoUrl('');
+    setNuevaFotoDesc('');
+  };
+
+  const handleEliminarFoto = (index: number) => {
+    setReporteFotos((prev) =>
+      prev
+        .filter((_, idx) => idx !== index)
+        .map((foto, idx) => ({ ...foto, numero_foto: idx + 1 })),
+    );
+  };
+
   // Helper para insignias de roles
   const getRoleBadge = (roleName?: string | null) => {
     switch (roleName) {
@@ -900,7 +1757,16 @@ export default function App() {
           </div>
 
           {currentUser ? (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => openBitacoraModal()}
+                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition border border-indigo-500"
+                title="HU-040: Consultar Bitácora Diaria y Reportes de Supervisión"
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Bitácora Diaria</span>
+              </button>
+
               <div className="text-right hidden sm:block">
                 <span className="text-sm font-semibold block">{currentUser.nombre_completo}</span>
                 <span
@@ -1112,7 +1978,7 @@ export default function App() {
 
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
-                        Cédula Profesional (Obligatoria para Terna en Sprint 2)
+                        Cédula Profesional (Obligatoria para Terna Técnica)
                       </label>
                       <div className="relative">
                         <Award className="w-5 h-5 text-slate-400 absolute left-3 top-3" />
@@ -1377,7 +2243,16 @@ export default function App() {
                                     title="Consultar y estructurar el catálogo de conceptos del contrato"
                                   >
                                     <FileSpreadsheet className="w-3.5 h-3.5" />
-                                    <span>Catálogo Original (Sprint 3)</span>
+                                    <span>Catálogo de Conceptos</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => openBitacoraModal(obra)}
+                                    className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition flex items-center space-x-1 shadow-sm"
+                                    title="Consultar bitácora diaria y reportes de supervisión"
+                                  >
+                                    <ClipboardList className="w-3.5 h-3.5" />
+                                    <span>Bitácora Diaria</span>
                                   </button>
 
                                   <button
@@ -2158,13 +3033,20 @@ export default function App() {
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-slate-100">
+                          <div className="pt-2 border-t border-slate-100 space-y-2">
                             <button
                               onClick={() => openCatalogoModal(obra)}
                               className="w-full py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center justify-center space-x-1.5 shadow-xs"
                             >
                               <FileSpreadsheet className="w-3.5 h-3.5" />
-                              <span>Catálogo Original de Conceptos (Sprint 3)</span>
+                              <span>Catálogo de Conceptos</span>
+                            </button>
+                            <button
+                              onClick={() => openBitacoraModal(obra)}
+                              className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition flex items-center justify-center space-x-1.5 shadow-xs"
+                            >
+                              <ClipboardList className="w-3.5 h-3.5" />
+                              <span>Bitácora Diaria de Supervisión</span>
                             </button>
                           </div>
                         </div>
@@ -2684,7 +3566,10 @@ export default function App() {
 
       {/* MODAL HU-018: BLOQUEAR CATÁLOGO ORIGINAL */}
       {isBloquearModalOpen && catalogoActual && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[70]"
+          style={{ zIndex: 70 }}
+        >
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-rose-800 flex items-center">
@@ -2742,6 +3627,1685 @@ export default function App() {
       )}
 
       {/* ========================================================================= */}
+      {/* SPRINT 5: SUB-MODALES HU-027, HU-028, HU-029, HU-030/031 (Z-INDEX 70)        */}
+      {/* ========================================================================= */}
+
+      {/* MODAL HU-027: CREAR CATÁLOGO MODIFICADO A PARTIR DEL ORIGINAL */}
+      {isCatalogoModificadoModalOpen && selectedObraForCatalogo && (
+        <div
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[70]"
+          style={{ zIndex: 70 }}
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-blue-900 flex items-center">
+                <ArrowRightLeft className="w-5 h-5 mr-2 text-blue-600" /> HU-027: Crear Catálogo Modificado
+              </h3>
+              <button onClick={() => setIsCatalogoModificadoModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearCatalogoModificado} className="mt-4 space-y-4 text-xs">
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 space-y-1">
+                <span className="font-bold flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-1 text-blue-600" />
+                  Preservación del Catálogo Original (Art. 59 LOPSRM)
+                </span>
+                <p className="text-[11px] leading-relaxed">
+                  Se clonará la estructura completa de partidas, subpartidas y conceptos del catálogo base. El catálogo original{' '}
+                  <strong>permanecerá 100% inalterado</strong> para garantizar la trazabilidad de la auditoría.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Descripción u Objeto de la Modificación
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={descModificado}
+                  onChange={(e) => setDescModificado(e.target.value)}
+                  placeholder="Justifique los motivos de los ajustes de volumen o variaciones técnicas..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Convenio Modificatorio Asociado (Opcional)
+                </label>
+                <select
+                  value={convenioModificadoId}
+                  onChange={(e) => setConvenioModificadoId(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                >
+                  <option value="">-- Sin convenio previo / Generar catálogo independiente --</option>
+                  {conveniosLista.map((c) => (
+                    <option key={c.id_convenio} value={c.id_convenio}>
+                      {c.numero_convenio} — {c.descripcion.substring(0, 45)}...
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCatalogoModificadoModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                >
+                  Crear Versión Modificada
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HU-028: REGISTRAR CONCEPTO EXTRAORDINARIO */}
+      {isExtraordinarioModalOpen && selectedObraForCatalogo && (
+        <div
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[70]"
+          style={{ zIndex: 70 }}
+        >
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-purple-900 flex items-center">
+                  <Sparkles className="w-5 h-5 text-purple-600 mr-2" /> HU-028: Registrar Concepto Extraordinario
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Incorporación de trabajos no contemplados en el catálogo original
+                </p>
+              </div>
+              <button onClick={() => setIsExtraordinarioModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearExtraordinario} className="mt-4 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Identificador / Clave Única (HU-028)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={claveExtra}
+                    onChange={(e) => setClaveExtra(e.target.value.toUpperCase())}
+                    placeholder="EXT-001"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono font-bold focus:ring-2 focus:ring-purple-500 outline-none uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Agrupación / Partida
+                  </label>
+                  <input
+                    type="text"
+                    value={partidaExtra}
+                    onChange={(e) => setPartidaExtra(e.target.value)}
+                    placeholder="TRABAJOS EXTRAORDINARIOS"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Descripción Técnica del Concepto Extraordinario
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={descExtra}
+                  onChange={(e) => setDescExtra(e.target.value)}
+                  placeholder="Detalle de las actividades, equipo, materiales y mano de obra requeridos..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Unidad
+                  </label>
+                  <select
+                    value={unidadExtra}
+                    onChange={(e) => setUnidadExtra(e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+                  >
+                    <option value="M3">M3</option>
+                    <option value="M2">M2</option>
+                    <option value="ML">ML</option>
+                    <option value="PZA">PZA</option>
+                    <option value="KG">KG</option>
+                    <option value="TON">TON</option>
+                    <option value="LOTE">LOTE</option>
+                    <option value="VIAJE">VIAJE</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Cantidad Autorizada
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={cantidadExtra}
+                    onChange={(e) => setCantidadExtra(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="50.00"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    P.U. Analizado ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    value={puExtra}
+                    onChange={(e) => setPuExtra(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="450.00"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-purple-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Justificación Técnica / Dictamen de Residencia
+                </label>
+                <input
+                  type="text"
+                  value={justificacionExtra}
+                  onChange={(e) => setJustificacionExtra(e.target.value)}
+                  placeholder="Motivo que originó la no previsión en el proyecto ejecutivo..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 outline-none"
+                />
+              </div>
+
+              {/* Previsualización del Importe */}
+              <div className="bg-purple-50 p-3 rounded-xl border border-purple-200 flex items-center justify-between">
+                <div>
+                  <span className="text-purple-900 font-semibold block text-[11px]">
+                    Importe Extraordinario Calculado:
+                  </span>
+                  <span className="text-slate-500 text-[10px]">
+                    {cantidadExtra || 0} {unidadExtra} × {formatMoney(Number(puExtra) || 0)}
+                  </span>
+                </div>
+                <div className="text-sm font-bold font-mono text-purple-900">
+                  {formatMoney((Number(cantidadExtra) || 0) * (Number(puExtra) || 0))}
+                </div>
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsExtraordinarioModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm"
+                >
+                  Guardar Extraordinario
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HU-029: REGISTRAR CONVENIO DE VOLUMEN */}
+      {isConvenioModalOpen && selectedObraForCatalogo && (
+        <div
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[70]"
+          style={{ zIndex: 70 }}
+        >
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center">
+                <FileCheck className="w-5 h-5 mr-2 text-emerald-600" /> HU-029: Registrar Convenio de Volumen
+              </h3>
+              <button onClick={() => setIsConvenioModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearConvenio} className="mt-4 space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Número de Convenio
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={numConvenio}
+                    onChange={(e) => setNumConvenio(e.target.value.toUpperCase())}
+                    placeholder="CONV-VOL-01/2026"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono font-bold focus:ring-2 focus:ring-emerald-500 outline-none uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Tipo de Convenio
+                  </label>
+                  <select
+                    value={tipoConvenio}
+                    onChange={(e) => setTipoConvenio(e.target.value as any)}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                  >
+                    <option value="MODIFICATORIO_VOLUMEN">Modificatorio de Volumen</option>
+                    <option value="CONCEPTO_EXTRAORDINARIO">Conceptos Extraordinarios</option>
+                    <option value="PLAZO">Ampliación de Plazo</option>
+                    <option value="MIXTO">Mixto (Monto, Volumen y Plazo)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Objeto y Descripción del Convenio
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={descConvenio}
+                  onChange={(e) => setDescConvenio(e.target.value)}
+                  placeholder="Describa el alcance de las variaciones volumétricas y justificación legal..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Fecha de Firma
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={fechaFirmaConvenio}
+                    onChange={(e) => setFechaFirmaConvenio(e.target.value)}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Monto Adicional ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={montoConvenio}
+                    onChange={(e) => setMontoConvenio(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="0.00"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    % Variación
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="25"
+                    value={pctConvenio}
+                    onChange={(e) => setPctConvenio(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="Max 25%"
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Días de Ampliación de Plazo
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={diasConvenio}
+                    onChange={(e) => setDiasConvenio(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Catálogo Modificado Asociado
+                  </label>
+                  <select
+                    value={catalogoAsociadoConvenioId}
+                    onChange={(e) => setCatalogoAsociadoConvenioId(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+                  >
+                    <option value="">-- Opcional / Seleccionar Catálogo --</option>
+                    {catalogosLista.map((c) => (
+                      <option key={c.id_catalogo} value={c.id_catalogo}>
+                        {c.tipo_catalogo} v{c.version}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsConvenioModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm"
+                >
+                  Guardar Convenio
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL HU-030/031/033: MODIFICAR CANTIDAD DE CONCEPTO CON AUDITORÍA PERICIAL */}
+      {isModificarVolumenModalOpen && conceptoParaModificar && (
+        <div
+          className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 z-[70]"
+          style={{ zIndex: 70 }}
+        >
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center">
+                  <ArrowRightLeft className="w-5 h-5 mr-2 text-blue-600" /> HU-030/031: Modificar Volumen
+                </h3>
+                <span className="font-mono text-xs font-bold text-blue-700">
+                  {conceptoParaModificar.clave_concepto}
+                </span>
+              </div>
+              <button onClick={() => setIsModificarVolumenModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleModificarCantidadVolumen} className="mt-4 space-y-4 text-xs">
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-slate-700">
+                <span className="font-bold block mb-1">Concepto:</span>
+                <p className="line-clamp-2 text-[11px] text-slate-600 leading-snug">
+                  {conceptoParaModificar.descripcion}
+                </p>
+                <div className="mt-2 flex justify-between font-mono text-[11px] pt-2 border-t border-slate-200">
+                  <span>
+                    Volumen Actual: <strong>{conceptoParaModificar.cantidad} {conceptoParaModificar.unidad_medida}</strong>
+                  </span>
+                  <span>
+                    P.U.: <strong>{formatMoney(Number(conceptoParaModificar.costo_directo_unitario))}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Nueva Cantidad / Volumen Autorizado
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={nuevaCantidadVolumen}
+                  onChange={(e) => setNuevaCantidadVolumen(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="Nueva cantidad autorizada..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 font-mono text-base font-bold text-blue-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Justificación Técnica de la Modificación (Obligatoria para Auditoría HU-033)
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={justificacionVolumen}
+                  onChange={(e) => setJustificacionVolumen(e.target.value)}
+                  placeholder="Detalle el convenio, bitácora o dictamen que sustenta la variación del volumen..."
+                  className="w-full p-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <span className="text-[10px] text-slate-400 mt-1 block">
+                  Se registrará automáticamente su usuario ({currentUser?.nombre_completo}) y timestamp oficial.
+                </span>
+              </div>
+
+              {/* Previsualización del Nuevo Importe */}
+              <div className="bg-blue-50 p-3 rounded-xl border border-blue-200 flex items-center justify-between">
+                <div>
+                  <span className="text-blue-900 font-semibold block text-[11px]">
+                    Nuevo Importe Calculado:
+                  </span>
+                  <span className="text-slate-500 text-[10px]">
+                    {nuevaCantidadVolumen || 0} {conceptoParaModificar.unidad_medida} ×{' '}
+                    {formatMoney(Number(conceptoParaModificar.costo_directo_unitario))}
+                  </span>
+                </div>
+                <div className="text-sm font-bold font-mono text-blue-900">
+                  {formatMoney(
+                    (Number(nuevaCantidadVolumen) || 0) * Number(conceptoParaModificar.costo_directo_unitario),
+                  )}
+                </div>
+              </div>
+
+              <div className="flex space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModificarVolumenModalOpen(false)}
+                  className="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm"
+                >
+                  Confirmar Modificación
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SPRINT 6 - MODAL 1 (HU-040): CONSULTAR BITÁCORA DIARIA DE SUPERVISIÓN     */}
+      {/* ========================================================================= */}
+      {isBitacoraModalOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-[60]"
+          style={{ zIndex: 60 }}
+        >
+          <div className="bg-white rounded-2xl max-w-5xl w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[92vh] flex flex-col">
+            {/* Cabecera del Modal */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                    <ClipboardList className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 flex items-center">
+                      Bitácora Diaria y Reportes de Supervisión
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {selectedObraForBitacora
+                        ? `Obra: ${selectedObraForBitacora.clave_obra} — ${selectedObraForBitacora.nombre_obra}`
+                        : 'Consulta general de reportes diarios de supervisión de obras públicas'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 self-end sm:self-auto">
+                {(currentUser?.rol?.nombre_rol === 'SUPERVISOR' ||
+                  currentUser?.rol?.nombre_rol === 'ADMINISTRADOR') && (
+                  <button
+                    onClick={() => openNuevoReporteModal(selectedObraForBitacora || undefined)}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>+ Registrar Reporte Diario (HU-034)</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsBitacoraModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Mensajes de Alerta */}
+            {bitacoraMsg && (
+              <div
+                className={`mt-4 p-3 rounded-xl text-xs border flex items-center justify-between ${
+                  bitacoraMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                <span>{bitacoraMsg.text}</span>
+                <button
+                  onClick={() => setBitacoraMsg(null)}
+                  className="font-bold hover:underline ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Barra de Filtros Periciales (HU-040) */}
+            <div className="mt-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+              {!selectedObraForBitacora && (
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Filtrar por Obra
+                  </label>
+                  <select
+                    value={filtroBitacoraObraId}
+                    onChange={(e) =>
+                      setFiltroBitacoraObraId(e.target.value === '' ? '' : Number(e.target.value))
+                    }
+                    className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                  >
+                    <option value="">-- Todas las obras --</option>
+                    {(obrasList.length > 0 ? obrasList : myWorksList).map((o) => (
+                      <option key={o.id_obra} value={o.id_obra}>
+                        {o.clave_obra} - {o.nombre_obra.substring(0, 30)}...
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Fecha Inicio
+                </label>
+                <input
+                  type="date"
+                  value={filtroBitacoraFechaInicio}
+                  onChange={(e) => setFiltroBitacoraFechaInicio(e.target.value)}
+                  className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Fecha Fin
+                </label>
+                <input
+                  type="date"
+                  value={filtroBitacoraFechaFin}
+                  onChange={(e) => setFiltroBitacoraFechaFin(e.target.value)}
+                  className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Condición Climática (HU-035)
+                </label>
+                <select
+                  value={filtroBitacoraClima}
+                  onChange={(e) => setFiltroBitacoraClima(e.target.value)}
+                  className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                >
+                  <option value="">-- Todo tipo de clima --</option>
+                  <option value="Soleado">Soleado</option>
+                  <option value="Parcialmente Nublado">Parcialmente Nublado</option>
+                  <option value="Nublado">Nublado</option>
+                  <option value="Lluvia Ligera">Lluvia Ligera</option>
+                  <option value="Lluvia Fuerte">Lluvia Fuerte</option>
+                  <option value="Tormenta">Tormenta</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2 md:col-span-4 flex justify-end space-x-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFiltroBitacoraFechaInicio('');
+                    setFiltroBitacoraFechaFin('');
+                    setFiltroBitacoraClima('');
+                    if (!selectedObraForBitacora) setFiltroBitacoraObraId('');
+                    fetchBitacora(selectedObraForBitacora ? selectedObraForBitacora.id_obra : undefined);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 font-semibold"
+                >
+                  Limpiar Filtros
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    fetchBitacora(
+                      filtroBitacoraObraId ? Number(filtroBitacoraObraId) : selectedObraForBitacora?.id_obra,
+                      filtroBitacoraFechaInicio || undefined,
+                      filtroBitacoraFechaFin || undefined,
+                      filtroBitacoraClima || undefined,
+                    )
+                  }
+                  className="px-4 py-1.5 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-semibold flex items-center space-x-1"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Aplicar Filtros (HU-040)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Listado de Reportes Diarios */}
+            <div className="mt-4 flex-1">
+              {loadingBitacora ? (
+                <div className="text-center py-16 text-slate-400">
+                  <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <p className="text-xs">Consultando bitácora diaria de supervisión...</p>
+                </div>
+              ) : reportesLista.length === 0 ? (
+                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-8">
+                  <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+                  <h4 className="font-bold text-slate-800 text-sm">Sin reportes diarios registrados</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    No se encontraron reportes diarios con los filtros seleccionados. Como Supervisor, utilice el botón superior para capturar la jornada de obra.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Tarjetas de Reportes */}
+                  {reportesLista.map((rep) => {
+                    const totalPersonal = rep.resumen_cuadrilla
+                      ? rep.resumen_cuadrilla.reduce((acc, c) => acc + (Number(c.cantidad) || 0), 0)
+                      : 0;
+                    const totalMaquinaria = rep.maquinaria_sitio
+                      ? rep.maquinaria_sitio.reduce((acc, m) => acc + (Number(m.cantidad) || 0), 0)
+                      : 0;
+
+                    return (
+                      <div
+                        key={rep.id_reporte}
+                        className="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition shadow-xs space-y-3"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-800 border border-indigo-200">
+                              📅 {rep.fecha_reporte}
+                            </span>
+                            <span className="text-xs font-bold text-slate-800">
+                              {rep.obra?.clave_obra || `Obra #${rep.id_obra}`}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            {/* Clima badge (HU-035) */}
+                            <span className="inline-flex items-center text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                              {rep.clima.includes('Lluvia') || rep.clima.includes('Tormenta') ? (
+                                <CloudRain className="w-3.5 h-3.5 mr-1 text-blue-600" />
+                              ) : (
+                                <Sun className="w-3.5 h-3.5 mr-1 text-amber-500" />
+                              )}
+                              {rep.clima} {rep.temperatura_celsius ? `(${rep.temperatura_celsius}°C)` : ''}
+                            </span>
+
+                            {/* Seguridad / EPP badges (HU-036, HU-037) */}
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                rep.equipo_proteccion_epp
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                  : 'bg-rose-50 text-rose-800 border-rose-200'
+                              }`}
+                            >
+                              EPP: {rep.equipo_proteccion_epp ? '100% CUMPLE' : 'INCOMPLETO'}
+                            </span>
+
+                            <button
+                              onClick={() => setReporteSeleccionadoDetalle(rep)}
+                              className="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center space-x-1"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Ver Detalle</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Actividades realizadas (HU-034) */}
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            Actividades de la Jornada (HU-034):
+                          </span>
+                          <p className="text-xs text-slate-700 mt-0.5 font-medium line-clamp-2">
+                            {rep.actividades_realizadas || 'Sin descripción capturada.'}
+                          </p>
+                        </div>
+
+                        {/* Métricas clave: Personal, Maquinaria, Avance acumulado */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Personal Presente (HU-038):</span>
+                            <strong className="text-slate-800 font-semibold flex items-center">
+                              <Users className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+                              {totalPersonal} personas ({rep.estatus_personal})
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Maquinaria en Sitio (HU-039):</span>
+                            <strong className="text-slate-800 font-semibold flex items-center">
+                              <Truck className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                              {totalMaquinaria} equipos operados
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Avance Físico Acumulado:</span>
+                            <strong className="text-emerald-700 font-bold font-mono">
+                              {rep.avance_fisico_acumulado}%
+                            </strong>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] text-slate-400 block">Supervisor Responsable:</span>
+                            <span className="text-slate-700 font-medium truncate block">
+                              {rep.supervisor?.nombre_completo || 'Supervisor'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SPRINT 6 - MODAL 2 (HU-034 A HU-039): FORMULARIO NUEVO REPORTE DIARIO     */}
+      {/* ========================================================================= */}
+      {isNuevoReporteModalOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-[70]"
+          style={{ zIndex: 70 }}
+        >
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[92vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center">
+                  <ClipboardList className="w-5 h-5 mr-2 text-indigo-600" />
+                  HU-034 a HU-039: Captura de Reporte Diario de Supervisión
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Documentación formal de actividades, clima, seguridad, EPP, personal y maquinaria en sitio
+                </p>
+              </div>
+              <button
+                onClick={() => setIsNuevoReporteModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarReporteDiario} className="mt-4 space-y-6 text-xs">
+              {/* SECCIÓN 1: DATOS GENERALES Y ACTIVIDADES (HU-034) */}
+              <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/40 space-y-3">
+                <h4 className="font-bold text-indigo-950 uppercase tracking-wider text-[11px] flex items-center">
+                  <Calendar className="w-4 h-4 mr-1.5 text-indigo-600" />
+                  1. Datos Generales de la Jornada y Actividades Realizadas (HU-034)
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Obra Pública
+                    </label>
+                    <select
+                      value={reporteObraId}
+                      onChange={(e) => setReporteObraId(Number(e.target.value))}
+                      required
+                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">-- Seleccionar Obra --</option>
+                      {(obrasList.length > 0 ? obrasList : myWorksList).map((o) => (
+                        <option key={o.id_obra} value={o.id_obra}>
+                          {o.clave_obra} - {o.nombre_obra.substring(0, 30)}...
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Fecha de la Jornada
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={reporteFecha}
+                      onChange={(e) => setReporteFecha(e.target.value)}
+                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Avance Físico Acumulado (%)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={ultimoAvanceObra}
+                      max="100"
+                      value={reporteAvanceFisico}
+                      onChange={(e) =>
+                        setReporteAvanceFisico(e.target.value === '' ? '' : Number(e.target.value))
+                      }
+                      placeholder={`Mínimo ${ultimoAvanceObra}%`}
+                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white font-mono font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      Último avance registrado: {ultimoAvanceObra}%
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Actividades Realizadas Durante la Jornada (HU-034) *
+                  </label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={reporteActividades}
+                    onChange={(e) => setReporteActividades(e.target.value)}
+                    placeholder="Documente en detalle los frentes de trabajo atendidos, colados, excavaciones, habilitado de acero, etc."
+                    className="w-full p-2.5 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN 2: CONDICIONES METEOROLÓGICAS (HU-035) */}
+              <div className="p-4 rounded-xl border border-amber-100 bg-amber-50/40 space-y-3">
+                <h4 className="font-bold text-amber-950 uppercase tracking-wider text-[11px] flex items-center">
+                  <Sun className="w-4 h-4 mr-1.5 text-amber-600" />
+                  2. Condiciones Meteorológicas (HU-035)
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Estado del Tiempo
+                    </label>
+                    <select
+                      value={reporteClima}
+                      onChange={(e) => setReporteClima(e.target.value)}
+                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                    >
+                      <option value="Soleado">☀️ Soleado</option>
+                      <option value="Parcialmente Nublado">⛅ Parcialmente Nublado</option>
+                      <option value="Nublado">☁️ Nublado</option>
+                      <option value="Lluvia Ligera">🌦️ Lluvia Ligera</option>
+                      <option value="Lluvia Fuerte">🌧️ Lluvia Fuerte</option>
+                      <option value="Tormenta">⛈️ Tormenta</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Temperatura Estimada (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={reporteTemperatura}
+                      onChange={(e) =>
+                        setReporteTemperatura(e.target.value === '' ? '' : Number(e.target.value))
+                      }
+                      placeholder="Ej. 24.5"
+                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white font-mono outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Observaciones de Clima
+                    </label>
+                    <input
+                      type="text"
+                      value={reporteObservacionesClima}
+                      onChange={(e) => setReporteObservacionesClima(e.target.value)}
+                      placeholder="Viento moderado, sin suspensión"
+                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 3: CONDICIONES DE SEGURIDAD (HU-036) */}
+              <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-blue-950 uppercase tracking-wider text-[11px] flex items-center">
+                    <Shield className="w-4 h-4 mr-1.5 text-blue-600" />
+                    3. Condiciones de Seguridad de la Obra (HU-036)
+                  </h4>
+                  <label className="flex items-center space-x-2 cursor-pointer font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={reporteSenalamiento}
+                      onChange={(e) => setReporteSenalamiento(e.target.checked)}
+                      className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span>Señalamiento Preventivo Activo</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-3 rounded-lg border border-slate-200">
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistSeguridad.senalizacion}
+                      onChange={(e) =>
+                        setReporteChecklistSeguridad({
+                          ...reporteChecklistSeguridad,
+                          senalizacion: e.target.checked,
+                        })
+                      }
+                      className="rounded text-blue-600 w-3.5 h-3.5"
+                    />
+                    <span>Señalización vial/perimetral</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistSeguridad.extintores}
+                      onChange={(e) =>
+                        setReporteChecklistSeguridad({
+                          ...reporteChecklistSeguridad,
+                          extintores: e.target.checked,
+                        })
+                      }
+                      className="rounded text-blue-600 w-3.5 h-3.5"
+                    />
+                    <span>Extintores vigentes</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistSeguridad.botiquin}
+                      onChange={(e) =>
+                        setReporteChecklistSeguridad({
+                          ...reporteChecklistSeguridad,
+                          botiquin: e.target.checked,
+                        })
+                      }
+                      className="rounded text-blue-600 w-3.5 h-3.5"
+                    />
+                    <span>Botiquín de emergencias</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistSeguridad.orden_limpieza}
+                      onChange={(e) =>
+                        setReporteChecklistSeguridad({
+                          ...reporteChecklistSeguridad,
+                          orden_limpieza: e.target.checked,
+                        })
+                      }
+                      className="rounded text-blue-600 w-3.5 h-3.5"
+                    />
+                    <span>Orden y limpieza de pasillos</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Observaciones de Medidas Preventivas e Incidencias (HU-036)
+                  </label>
+                  <input
+                    type="text"
+                    value={reporteCondicionesSeguridad}
+                    onChange={(e) => setReporteCondicionesSeguridad(e.target.value)}
+                    placeholder="Área de obra segura sin riesgos inminentes detectados."
+                    className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN 4: CUMPLIMIENTO DEL EPP (HU-037) */}
+              <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-emerald-950 uppercase tracking-wider text-[11px] flex items-center">
+                    <HardHat className="w-4 h-4 mr-1.5 text-emerald-600" />
+                    4. Cumplimiento de Equipo de Protección Personal - EPP (HU-037)
+                  </h4>
+                  <label className="flex items-center space-x-2 cursor-pointer font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={reporteCumplimientoEPP}
+                      onChange={(e) => setReporteCumplimientoEPP(e.target.checked)}
+                      className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                    />
+                    <span>Cumplimiento General del EPP</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 bg-white p-3 rounded-lg border border-slate-200">
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistEPP.casco}
+                      onChange={(e) =>
+                        setReporteChecklistEPP({ ...reporteChecklistEPP, casco: e.target.checked })
+                      }
+                      className="rounded text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Casco rígido</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistEPP.chaleco}
+                      onChange={(e) =>
+                        setReporteChecklistEPP({ ...reporteChecklistEPP, chaleco: e.target.checked })
+                      }
+                      className="rounded text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Chaleco reflejante</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistEPP.botas}
+                      onChange={(e) =>
+                        setReporteChecklistEPP({ ...reporteChecklistEPP, botas: e.target.checked })
+                      }
+                      className="rounded text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Botas con casquillo</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistEPP.guantes}
+                      onChange={(e) =>
+                        setReporteChecklistEPP({ ...reporteChecklistEPP, guantes: e.target.checked })
+                      }
+                      className="rounded text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Guantes de trabajo</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistEPP.lentes}
+                      onChange={(e) =>
+                        setReporteChecklistEPP({ ...reporteChecklistEPP, lentes: e.target.checked })
+                      }
+                      className="rounded text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Lentes de seguridad</span>
+                  </label>
+                  <label className="flex items-center space-x-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reporteChecklistEPP.arnes}
+                      onChange={(e) =>
+                        setReporteChecklistEPP({ ...reporteChecklistEPP, arnes: e.target.checked })
+                      }
+                      className="rounded text-emerald-600 w-3.5 h-3.5"
+                    />
+                    <span>Arnés contra caídas</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Observaciones sobre Cumplimiento del EPP (HU-037)
+                  </label>
+                  <input
+                    type="text"
+                    value={reporteObservacionesEPP}
+                    onChange={(e) => setReporteObservacionesEPP(e.target.value)}
+                    placeholder="Todo el personal cuenta con equipo reglamentario en buenas condiciones."
+                    className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* SECCIÓN 5: PERSONAL PRESENTE / CUADRILLAS (HU-038) */}
+              <div className="p-4 rounded-xl border border-purple-100 bg-purple-50/40 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h4 className="font-bold text-purple-950 uppercase tracking-wider text-[11px] flex items-center">
+                    <Users className="w-4 h-4 mr-1.5 text-purple-600" />
+                    5. Personal Presente en Obra y Cuadrillas (HU-038)
+                  </h4>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] text-slate-500 font-semibold uppercase">Total en Sitio:</span>
+                    <span className="font-mono text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                      {reporteCuadrilla.reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0)} operarios
+                    </span>
+                    <select
+                      value={reporteEstatusPersonal}
+                      onChange={(e) => setReporteEstatusPersonal(e.target.value)}
+                      className="p-1 rounded border border-slate-300 bg-white text-xs font-bold text-slate-700"
+                    >
+                      <option value="Suficiente">Suficiente</option>
+                      <option value="Insuficiente">Insuficiente</option>
+                      <option value="Crítico">Crítico</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Lista de Cuadrillas Actuales */}
+                <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+                  {reporteCuadrilla.map((item, idx) => (
+                    <div key={idx} className="p-2.5 flex items-center justify-between text-xs">
+                      <div>
+                        <strong className="text-slate-800">{item.categoria}</strong>
+                        {item.descripcion && (
+                          <span className="text-slate-500 ml-2 italic text-[11px]">— {item.descripcion}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <span className="font-mono font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                          {item.cantidad} trabajadores
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarPersonalCuadrilla(idx)}
+                          className="text-rose-500 hover:text-rose-700 text-[11px] font-semibold"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Agregar Nuevo Personal a Cuadrilla con Catálogo */}
+                <div className="p-3 bg-white rounded-lg border border-purple-200 space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <div className={categoriaPersonalSeleccionada === 'Otro (especificar)' ? 'sm:col-span-4' : 'sm:col-span-8'}>
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                        Catálogo de Especialidades / Oficios
+                      </label>
+                      <select
+                        value={categoriaPersonalSeleccionada}
+                        onChange={(e) => setCategoriaPersonalSeleccionada(e.target.value)}
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-purple-500 text-xs"
+                      >
+                        <option value="">-- Seleccionar Categoría de Personal --</option>
+                        {CATALOGO_CATEGORIAS_PERSONAL.map((cat, i) => (
+                          <option key={i} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {categoriaPersonalSeleccionada === 'Otro (especificar)' && (
+                      <div className="sm:col-span-4">
+                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Especificar Puesto / Especialidad</label>
+                        <input
+                          type="text"
+                          value={categoriaPersonalOtro}
+                          onChange={(e) => setCategoriaPersonalOtro(e.target.value)}
+                          placeholder="Nombre del oficio o puesto"
+                          className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-purple-500 text-xs"
+                        />
+                      </div>
+                    )}
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Cantidad</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={nuevaCantidadPersonal}
+                        onChange={(e) =>
+                          setNuevaCantidadPersonal(e.target.value === '' ? '' : Number(e.target.value))
+                        }
+                        placeholder="Cant."
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white font-mono text-xs outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 flex items-end">
+                      <button
+                        type="button"
+                        onClick={handleAgregarPersonalCuadrilla}
+                        className="w-full p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition flex items-center justify-center shadow-xs"
+                      >
+                        + Agregar Personal
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                      Descripción de la actividad / Frente asignado
+                    </label>
+                    <input
+                      type="text"
+                      value={nuevaDescripcionPersonal}
+                      onChange={(e) => setNuevaDescripcionPersonal(e.target.value)}
+                      placeholder="Ej. Armado de acero en columnas eje 3 a 5, colado de firmes y cimbrado"
+                      className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-purple-500 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 6: MAQUINARIA UTILIZADA (HU-039) */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center">
+                    <Truck className="w-4 h-4 mr-1.5 text-amber-600" />
+                    6. Maquinaria y Equipo Utilizado en Sitio (HU-039)
+                  </h4>
+                  <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    {reporteMaquinaria.reduce((sum, item) => sum + (Number(item.cantidad) || 0), 0)} máquinas en sitio
+                  </span>
+                </div>
+
+                <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-100">
+                  {reporteMaquinaria.map((maq, idx) => (
+                    <div key={idx} className="p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div>
+                        <strong className="text-slate-800">{maq.tipo}</strong>
+                        <span className="text-slate-500 ml-2 font-medium">({maq.estatus || 'Operativa'})</span>
+                        {maq.descripcion && (
+                          <span className="text-slate-500 ml-2 italic text-[11px] block sm:inline">— {maq.descripcion}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-3 self-end sm:self-auto">
+                        <span className="font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          {maq.cantidad} unid. ({maq.horas_uso || 0} hrs)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarMaquinaria(idx)}
+                          className="text-rose-500 hover:text-rose-700 text-[11px] font-semibold"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Agregar Nueva Maquinaria con Catálogo y Actividad */}
+                <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <div className={tipoMaquinariaSeleccionada === 'Otro (especificar)' ? 'sm:col-span-4' : 'sm:col-span-5'}>
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                        Catálogo de Maquinaria y Equipo
+                      </label>
+                      <select
+                        value={tipoMaquinariaSeleccionada}
+                        onChange={(e) => setTipoMaquinariaSeleccionada(e.target.value)}
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-slate-500 text-xs"
+                      >
+                        <option value="">-- Seleccionar Maquinaria / Equipo --</option>
+                        {CATALOGO_MAQUINARIA_EQUIPO.map((m, i) => (
+                          <option key={i} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {tipoMaquinariaSeleccionada === 'Otro (especificar)' && (
+                      <div className="sm:col-span-3">
+                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Especificar Equipo</label>
+                        <input
+                          type="text"
+                          value={tipoMaquinariaOtro}
+                          onChange={(e) => setTipoMaquinariaOtro(e.target.value)}
+                          placeholder="Marca o modelo"
+                          className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-slate-500 text-xs"
+                        />
+                      </div>
+                    )}
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Cantidad</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={nuevaCantidadMaquinaria}
+                        onChange={(e) =>
+                          setNuevaCantidadMaquinaria(e.target.value === '' ? '' : Number(e.target.value))
+                        }
+                        placeholder="Cant. maq."
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white font-mono text-xs outline-none focus:ring-2 focus:ring-slate-500"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Horas Prog./Uso</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={nuevasHorasMaquinaria}
+                        onChange={(e) =>
+                          setNuevasHorasMaquinaria(e.target.value === '' ? '' : Number(e.target.value))
+                        }
+                        placeholder="Horas"
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white font-mono text-xs outline-none focus:ring-2 focus:ring-slate-500"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Estatus Operativo</label>
+                      <select
+                        value={nuevoEstatusMaquinaria}
+                        onChange={(e) => setNuevoEstatusMaquinaria(e.target.value)}
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-slate-500 text-xs"
+                      >
+                        <option value="Operativa">Operativa</option>
+                        <option value="En Mantenimiento">En Mantenimiento</option>
+                        <option value="Stand-by">Stand-by</option>
+                        <option value="Fuera de Servicio">Fuera de Servicio</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
+                    <div className="sm:col-span-9">
+                      <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                        Actividad específica / Frente en que se ocupa
+                      </label>
+                      <input
+                        type="text"
+                        value={nuevaActividadMaquinaria}
+                        onChange={(e) => setNuevaActividadMaquinaria(e.target.value)}
+                        placeholder="Ej. Carga y acarreo de material producto de excavación, compactación de base hidráulica"
+                        className="w-full p-2 rounded-lg border border-slate-300 bg-white outline-none focus:ring-2 focus:ring-slate-500 text-xs"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <button
+                        type="button"
+                        onClick={handleAgregarMaquinaria}
+                        className="w-full p-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs transition flex items-center justify-center shadow-xs"
+                      >
+                        + Agregar Maquinaria
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN 7: EVIDENCIA FOTOGRÁFICA (RF-13 - MÁXIMO 6 FOTOGRAFÍAS) */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center">
+                    <Eye className="w-4 h-4 mr-1.5 text-indigo-600" />
+                    7. Evidencia Fotográfica de la Jornada (RF-13 - Máx. 6 Fotos)
+                  </h4>
+                  <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                    {reporteFotos.length} / 6 fotos
+                  </span>
+                </div>
+
+                {reporteFotos.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                    {reporteFotos.map((foto, idx) => (
+                      <div key={idx} className="p-2 rounded border border-slate-100 flex items-center justify-between text-xs">
+                        <div className="truncate mr-2">
+                          <strong className="text-slate-800">Foto {foto.numero_foto}:</strong>{' '}
+                          <span className="text-slate-500 truncate">{foto.descripcion_foto}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleEliminarFoto(idx)}
+                          className="text-rose-500 hover:text-rose-700 font-semibold text-[11px]"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {reporteFotos.length < 6 && (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={nuevaFotoUrl}
+                      onChange={(e) => setNuevaFotoUrl(e.target.value)}
+                      placeholder="URL de la fotografía (ej. https://... o data:...)"
+                      className="flex-1 p-2 rounded-lg border border-slate-300 bg-white text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="text"
+                      value={nuevaFotoDesc}
+                      onChange={(e) => setNuevaFotoDesc(e.target.value)}
+                      placeholder="Descripción de la foto"
+                      className="sm:w-48 p-2 rounded-lg border border-slate-300 bg-white text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAgregarFoto}
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs"
+                    >
+                      + Foto
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* BOTONES DE ACCIÓN */}
+              <div className="flex space-x-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsNuevoReporteModalOpen(false)}
+                  className="flex-1 py-2.5 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm"
+                >
+                  Guardar Reporte Diario en Bitácora (HU-034)
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SPRINT 6 - MODAL 3 (HU-040): DETALLE COMPLETO DE REPORTE DIARIO           */}
+      {/* ========================================================================= */}
+      {reporteSeleccionadoDetalle && (
+        <div
+          className="fixed inset-0 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 z-[70]"
+          style={{ zIndex: 70 }}
+        >
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 overflow-y-auto max-h-[90vh] space-y-4 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200">
+                  Reporte Diario #{reporteSeleccionadoDetalle.id_reporte} — {reporteSeleccionadoDetalle.fecha_reporte}
+                </span>
+                <h3 className="text-base font-bold text-slate-900 mt-1">
+                  {reporteSeleccionadoDetalle.obra?.nombre_obra || `Obra #${reporteSeleccionadoDetalle.id_obra}`}
+                </h3>
+              </div>
+              <button
+                onClick={() => setReporteSeleccionadoDetalle(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Ficha Técnica */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div>
+                <span className="text-[10px] text-slate-400 block">Supervisor:</span>
+                <strong className="text-slate-800">
+                  {reporteSeleccionadoDetalle.supervisor?.nombre_completo || 'Supervisor'}
+                </strong>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block">Clima (HU-035):</span>
+                <strong className="text-amber-800 font-semibold">
+                  {reporteSeleccionadoDetalle.clima}{' '}
+                  {reporteSeleccionadoDetalle.temperatura_celsius
+                    ? `(${reporteSeleccionadoDetalle.temperatura_celsius}°C)`
+                    : ''}
+                </strong>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block">Seguridad (HU-036):</span>
+                <strong
+                  className={
+                    reporteSeleccionadoDetalle.senalamiento_preventivo
+                      ? 'text-emerald-700'
+                      : 'text-amber-700'
+                  }
+                >
+                  {reporteSeleccionadoDetalle.senalamiento_preventivo ? 'Con Señalamiento' : 'Sin Señalamiento'}
+                </strong>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 block">Avance Acumulado:</span>
+                <strong className="text-indigo-700 font-mono text-sm">
+                  {reporteSeleccionadoDetalle.avance_fisico_acumulado}%
+                </strong>
+              </div>
+            </div>
+
+            {/* Actividades realizadas (HU-034) */}
+            <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-800 block uppercase tracking-wider text-[10px]">
+                Actividades Realizadas (HU-034):
+              </span>
+              <p className="text-slate-700 leading-relaxed">
+                {reporteSeleccionadoDetalle.actividades_realizadas}
+              </p>
+            </div>
+
+            {/* EPP y Seguridad (HU-036, HU-037) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 space-y-1">
+                <span className="font-bold text-blue-900 block text-[11px]">
+                  🛡️ Medidas de Seguridad (HU-036)
+                </span>
+                <p className="text-slate-600 text-[11px]">
+                  {reporteSeleccionadoDetalle.condiciones_seguridad || 'Medidas estándar de seguridad aplicadas.'}
+                </p>
+              </div>
+
+              <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200 space-y-1">
+                <span className="font-bold text-emerald-900 block text-[11px]">
+                  👷 Cumplimiento de EPP (HU-037)
+                </span>
+                <p className="text-slate-600 text-[11px]">
+                  {reporteSeleccionadoDetalle.observaciones_epp ||
+                    (reporteSeleccionadoDetalle.equipo_proteccion_epp
+                      ? 'Personal con equipo de protección reglamentario al 100%.'
+                      : 'Incumplimiento parcial de equipo de protección reportado.')}
+                </p>
+              </div>
+            </div>
+
+            {/* Cuadrillas de Personal (HU-038) */}
+            {reporteSeleccionadoDetalle.resumen_cuadrilla &&
+              reporteSeleccionadoDetalle.resumen_cuadrilla.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="font-bold text-slate-800 block uppercase tracking-wider text-[10px]">
+                    Personal y Cuadrillas en Sitio (HU-038):
+                  </span>
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {reporteSeleccionadoDetalle.resumen_cuadrilla.map((c, idx) => (
+                      <div key={idx} className="bg-white p-2.5 rounded border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-800 font-bold text-xs">{c.categoria}</span>
+                          <strong className="text-purple-700 font-mono text-xs bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                            {c.cantidad} trabajadores
+                          </strong>
+                        </div>
+                        {c.descripcion && (
+                          <p className="text-slate-500 text-[11px] italic">
+                            Actividad: {c.descripcion}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Maquinaria Utilizada (HU-039) */}
+            {reporteSeleccionadoDetalle.maquinaria_sitio &&
+              reporteSeleccionadoDetalle.maquinaria_sitio.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="font-bold text-slate-800 block uppercase tracking-wider text-[10px]">
+                    Maquinaria y Equipo Empleado (HU-039):
+                  </span>
+                  <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {reporteSeleccionadoDetalle.maquinaria_sitio.map((m, idx) => (
+                      <div key={idx} className="bg-white p-2.5 rounded border border-slate-200 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-800 font-bold text-xs truncate max-w-[180px]">{m.tipo}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            {m.estatus || 'Operativa'}
+                          </span>
+                        </div>
+                        <div className="text-slate-600 font-mono text-[11px]">
+                          {m.cantidad} unid. ({m.horas_uso || 0} hrs prog.)
+                        </div>
+                        {m.descripcion && (
+                          <p className="text-slate-500 text-[11px] italic">
+                            Actividad: {m.descripcion}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setReporteSeleccionadoDetalle(null)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg text-xs"
+              >
+                Cerrar Detalle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL PRINCIPAL: GESTIÓN DE CATÁLOGO ORIGINAL (SPRINT 3: HU-014 A HU-019)  */}
       {/* ========================================================================= */}
       {selectedObraForCatalogo && (
@@ -2760,18 +5324,30 @@ export default function App() {
                   {catalogoActual && (
                     <span
                       className={`text-xs px-2.5 py-0.5 rounded-full font-bold flex items-center space-x-1 ${
-                        catalogoActual.estatus_aprobacion === 'BLOQUEADO'
+                        catalogoActual.tipo_catalogo === 'MODIFICADO'
+                          ? 'bg-blue-500 text-white'
+                          : catalogoActual.tipo_catalogo === 'EXTRAORDINARIO'
+                          ? 'bg-purple-600 text-white'
+                          : catalogoActual.estatus_aprobacion === 'BLOQUEADO'
                           ? 'bg-rose-500 text-white'
                           : 'bg-amber-400 text-slate-950'
                       }`}
                     >
-                      {catalogoActual.estatus_aprobacion === 'BLOQUEADO' ? (
+                      {catalogoActual.tipo_catalogo === 'MODIFICADO' ? (
                         <>
-                          <Lock className="w-3 h-3 mr-1" /> BLOQUEADO E INMUTABLE
+                          <ArrowRightLeft className="w-3 h-3 mr-1" /> MODIFICADO (v{catalogoActual.version})
+                        </>
+                      ) : catalogoActual.tipo_catalogo === 'EXTRAORDINARIO' ? (
+                        <>
+                          <Sparkles className="w-3 h-3 mr-1" /> EXTRAORDINARIO
+                        </>
+                      ) : catalogoActual.estatus_aprobacion === 'BLOQUEADO' ? (
+                        <>
+                          <Lock className="w-3 h-3 mr-1" /> ORIGINAL (v1) • BLOQUEADO E INMUTABLE
                         </>
                       ) : (
                         <>
-                          <Clock className="w-3 h-3 mr-1" /> BORRADOR (EN CAPTURA)
+                          <Clock className="w-3 h-3 mr-1" /> ORIGINAL (v1) • BORRADOR (EN CAPTURA)
                         </>
                       )}
                     </span>
@@ -2790,6 +5366,53 @@ export default function App() {
                 className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
               >
                 <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pestañas de Navegación del Modal (Sprint 3 y Sprint 5) */}
+            <div className="bg-slate-800 px-6 pt-2 border-b border-slate-700 flex items-center space-x-2 text-xs">
+              <button
+                onClick={() => setCatalogoModalTab('CATALOGOS')}
+                className={`px-4 py-2 font-semibold border-b-2 transition flex items-center space-x-2 ${
+                  catalogoModalTab === 'CATALOGOS'
+                    ? 'border-emerald-400 text-emerald-400 bg-slate-900/50 rounded-t-lg'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span>Catálogos de Conceptos</span>
+              </button>
+              <button
+                onClick={() => setCatalogoModalTab('CONVENIOS')}
+                className={`px-4 py-2 font-semibold border-b-2 transition flex items-center space-x-2 ${
+                  catalogoModalTab === 'CONVENIOS'
+                    ? 'border-emerald-400 text-emerald-400 bg-slate-900/50 rounded-t-lg'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <FileCheck className="w-4 h-4" />
+                <span>Convenios de Volumen (HU-029)</span>
+                {conveniosLista.length > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded-full text-[10px]">
+                    {conveniosLista.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setCatalogoModalTab('AUDITORIA')}
+                className={`px-4 py-2 font-semibold border-b-2 transition flex items-center space-x-2 ${
+                  catalogoModalTab === 'AUDITORIA'
+                    ? 'border-emerald-400 text-emerald-400 bg-slate-900/50 rounded-t-lg'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <History className="w-4 h-4" />
+                <span>Auditoría e Historial (HU-030 a HU-033)</span>
+                {historialLista.length > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.2 bg-purple-500/20 text-purple-300 rounded-full text-[10px]">
+                    {historialLista.length}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -2821,72 +5444,153 @@ export default function App() {
 
             {/* Modal Body with Scroll */}
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              {loadingCatalogo ? (
-                <div className="text-center py-20 text-slate-500">
-                  <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                  <p className="text-sm font-semibold">Cargando catálogo original de la obra...</p>
-                </div>
-              ) : !catalogoActual ? (
-                /* Estado: Sin catálogo inicializado */
-                <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-300 max-w-lg mx-auto p-8">
-                  <FileSpreadsheet className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <h4 className="font-bold text-slate-800 text-base">Catálogo Original No Inicializado</h4>
-                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Esta obra pública no cuenta aún con un Catálogo Original activo. Conforme a las atribuciones del
-                    Superintendente (o Administrador), debe inicializar el catálogo en estado BORRADOR para estructurar las
-                    partidas y conceptos.
-                  </p>
-                  <button
-                    onClick={handleCrearCatalogoOriginal}
-                    className="mt-5 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition inline-flex items-center space-x-2"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Inicializar Catálogo Original (Borrador)</span>
-                  </button>
-                </div>
-              ) : (
-                /* Estado: Catálogo Activo */
+              {/* VISTA 1: CATÁLOGOS DE CONCEPTOS (ORIGINAL, MODIFICADO, EXTRAORDINARIO) */}
+              {catalogoModalTab === 'CATALOGOS' && (
                 <>
-                  {/* Banner Normativo de Inmutabilidad o Instrucción */}
-                  {catalogoActual.estatus_aprobacion === 'BLOQUEADO' ? (
-                    <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/80 flex items-start space-x-3 text-xs text-rose-900 shadow-xs">
-                      <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Lock className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold uppercase tracking-wider text-rose-950 text-xs">
-                            HU-019 / Art. 59 LOPSRM: Catálogo Original Inmutable y Bloqueado
-                          </span>
-                          <span className="font-mono text-[11px] text-rose-700">
-                            Bloqueado el: {catalogoActual.fecha_bloqueo ? new Date(catalogoActual.fecha_bloqueo).toLocaleString('es-MX') : 'Fecha no registrada'}
-                          </span>
-                        </div>
-                        <p className="mt-1 leading-relaxed text-rose-800">
-                          El catálogo original ha sido finalizado y bloqueado para salvaguardar la propuesta económica
-                          original del contrato. Los intentos de modificación directa, adición o eliminación de partidas y
-                          conceptos son <strong>estrictamente rechazados por la API y la interfaz</strong>. Cualquier cambio de
-                          volúmenes o conceptos nuevos deberá registrarse en un Catálogo Modificado o Extraordinario.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 flex items-start space-x-3 text-xs text-amber-900 shadow-xs">
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <span className="font-bold uppercase tracking-wider text-amber-950 block">
-                          Sprint 3: Captura y Estructuración del Catálogo Original (Borrador)
-                        </span>
-                        <p className="mt-1 leading-relaxed text-amber-800">
-                          Como Superintendente, registre las <strong>Partidas</strong> (HU-014), <strong>Subpartidas</strong> (HU-015)
-                          y capture los <strong>Conceptos de Trabajo</strong> con su ID único y matriz de precios unitarios (HU-016 y HU-017).
-                          Al concluir la captura, utilice la opción de <strong>Bloqueo</strong> (HU-018) para formalizar la inmutabilidad legal.
-                        </p>
-                      </div>
+                  {/* Selector de Catálogos Existentes de la Obra (Sprint 5: HU-027 a HU-033) */}
+                  {catalogosLista && catalogosLista.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-100 rounded-xl border border-slate-200">
+                      <span className="text-slate-600 font-bold text-xs uppercase tracking-wider flex items-center mr-2">
+                        <Layers className="w-3.5 h-3.5 mr-1 text-slate-700" /> Catálogos de la Obra:
+                      </span>
+                      {catalogosLista.map((cat) => {
+                        const isSelected = catalogoActual?.id_catalogo === cat.id_catalogo;
+                        const badgeColor =
+                          cat.tipo_catalogo === 'ORIGINAL'
+                            ? cat.estatus_aprobacion === 'BLOQUEADO'
+                              ? 'bg-rose-100 text-rose-800 border-rose-300'
+                              : 'bg-amber-100 text-amber-800 border-amber-300'
+                            : cat.tipo_catalogo === 'MODIFICADO'
+                            ? 'bg-blue-100 text-blue-800 border-blue-300'
+                            : 'bg-purple-100 text-purple-800 border-purple-300';
+                        return (
+                          <button
+                            key={cat.id_catalogo}
+                            type="button"
+                            onClick={() => seleccionarCatalogoPorId(cat.id_catalogo)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition flex items-center space-x-1.5 ${
+                              isSelected
+                                ? 'ring-2 ring-emerald-500 shadow-xs bg-white font-bold'
+                                : 'bg-white/70 hover:bg-white text-slate-700'
+                            }`}
+                          >
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${badgeColor}`}>
+                              {cat.tipo_catalogo} v{cat.version}
+                            </span>
+                            <span>
+                              {cat.tipo_catalogo === 'ORIGINAL'
+                                ? 'Original Contractual'
+                                : cat.tipo_catalogo === 'MODIFICADO'
+                                ? `Modificado v${cat.version}`
+                                : 'Extraordinarios'}
+                            </span>
+                            {cat.estatus_aprobacion === 'BLOQUEADO' && <Lock className="w-3 h-3 text-rose-600" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
+
+                  {loadingCatalogo ? (
+                    <div className="text-center py-20 text-slate-500">
+                      <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-sm font-semibold">Cargando catálogo de la obra...</p>
+                    </div>
+                  ) : !catalogoActual ? (
+                    /* Estado: Sin catálogo inicializado */
+                    <div className="text-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-300 max-w-lg mx-auto p-8">
+                      <FileSpreadsheet className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <h4 className="font-bold text-slate-800 text-base">Catálogo Original No Inicializado</h4>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                        Esta obra pública no cuenta aún con un Catálogo Original activo. Conforme a las atribuciones del
+                        Superintendente (o Administrador), debe inicializar el catálogo en estado BORRADOR para estructurar las
+                        partidas y conceptos.
+                      </p>
+                      <button
+                        onClick={handleCrearCatalogoOriginal}
+                        className="mt-5 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition inline-flex items-center space-x-2"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>Inicializar Catálogo Original (Borrador)</span>
+                      </button>
+                    </div>
+                  ) : (
+                    /* Estado: Catálogo Activo */
+                    <>
+                      {/* Banner Informativo según Tipo de Catálogo */}
+                      {catalogoActual.tipo_catalogo === 'MODIFICADO' ? (
+                        <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/80 flex items-start space-x-3 text-xs text-blue-900 shadow-xs">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <ArrowRightLeft className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold uppercase tracking-wider text-blue-950 text-xs">
+                                HU-027: Catálogo Modificado Versión {catalogoActual.version}
+                              </span>
+                              <span className="font-mono text-[11px] text-blue-700">
+                                Derivado del Catálogo Original (Inalterado)
+                              </span>
+                            </div>
+                            <p className="mt-1 leading-relaxed text-blue-800">
+                              {catalogoActual.descripcion ||
+                                'Catálogo modificado para registrar cambios de cantidades autorizados para la obra conforme al marco legal LOPSRM.'}
+                              {' '}Cada ajuste de volumen queda registrado con usuario responsable (HU-030) y timestamp automático (HU-031).
+                            </p>
+                          </div>
+                        </div>
+                      ) : catalogoActual.tipo_catalogo === 'EXTRAORDINARIO' ? (
+                        <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/80 flex items-start space-x-3 text-xs text-purple-900 shadow-xs">
+                          <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-bold uppercase tracking-wider text-purple-950 text-xs block">
+                              HU-028: Catálogo de Conceptos Extraordinarios
+                            </span>
+                            <p className="mt-1 leading-relaxed text-purple-800">
+                              Concentrado formal de trabajos no contemplados en el catálogo original del contrato.
+                              Permite incorporar conceptos con clave única, unidad y costo directo unitario autorizado.
+                            </p>
+                          </div>
+                        </div>
+                      ) : catalogoActual.estatus_aprobacion === 'BLOQUEADO' ? (
+                        <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/80 flex items-start space-x-3 text-xs text-rose-900 shadow-xs">
+                          <div className="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Lock className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold uppercase tracking-wider text-rose-950 text-xs">
+                                HU-019 / Art. 59 LOPSRM: Catálogo Original Inmutable y Bloqueado
+                              </span>
+                              <span className="font-mono text-[11px] text-rose-700">
+                                Bloqueado el: {catalogoActual.fecha_bloqueo ? new Date(catalogoActual.fecha_bloqueo).toLocaleString('es-MX') : 'Fecha no registrada'}
+                              </span>
+                            </div>
+                            <p className="mt-1 leading-relaxed text-rose-800">
+                              El catálogo original ha sido finalizado y bloqueado para salvaguardar la propuesta económica
+                              original del contrato. Los intentos de modificación directa son rechazados. Para realizar ajustes de volúmenes, utilice el botón <strong>Crear Catálogo Modificado (HU-027)</strong>.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/70 flex items-start space-x-3 text-xs text-amber-900 shadow-xs">
+                          <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <FileSpreadsheet className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-bold uppercase tracking-wider text-amber-950 block">
+                              Captura y Estructuración del Catálogo de Conceptos (Borrador)
+                            </span>
+                            <p className="mt-1 leading-relaxed text-amber-800">
+                              Como Superintendente, registre las <strong>Partidas</strong> (HU-014), <strong>Subpartidas</strong> (HU-015)
+                              y capture los <strong>Conceptos de Trabajo</strong> con su ID único y matriz de precios unitarios (HU-016 y HU-017).
+                              Al concluir la captura, utilice la opción de <strong>Bloqueo</strong> (HU-018) para formalizar la inmutabilidad legal.
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
                   {/* Resumen de Presupuesto y Métricas */}
                   {(() => {
@@ -3006,10 +5710,41 @@ export default function App() {
                         <Hash className="w-3.5 h-3.5" />
                         <span>+ Capturar Concepto (HU-016/017)</span>
                       </button>
+
+                      {/* HU-028: Registrar concepto extraordinario */}
+                      <button
+                        onClick={() => {
+                          const totalExtras = (catalogoActual.conceptos || []).filter((c) => c.es_extraordinario).length;
+                          setClaveExtra(`EXT-${String(totalExtras + 1).padStart(3, '0')}`);
+                          setIsExtraordinarioModalOpen(true);
+                        }}
+                        className="px-3.5 py-2 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm"
+                        title="HU-028: Registrar conceptos extraordinarios para incorporar trabajos no contemplados en el original"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>+ Concepto Extraordinario (HU-028)</span>
+                      </button>
+
+                      {/* HU-027: Crear catálogo modificado a partir del original */}
+                      {catalogoActual.tipo_catalogo === 'ORIGINAL' && catalogoActual.estatus_aprobacion === 'BLOQUEADO' && (
+                        <button
+                          onClick={() => {
+                            setDescModificado(
+                              `Catálogo modificado derivado de convenio de volumen para la obra ${selectedObraForCatalogo.clave_obra}`,
+                            );
+                            setIsCatalogoModificadoModalOpen(true);
+                          }}
+                          className="px-3.5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm"
+                          title="HU-027: Crear catálogo modificado a partir del original para registrar cambios de cantidades autorizados"
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                          <span>+ Crear Catálogo Modificado (HU-027)</span>
+                        </button>
+                      )}
                     </div>
 
                     <div>
-                      {catalogoActual.estatus_aprobacion === 'BORRADOR' && (
+                      {catalogoActual.estatus_aprobacion === 'BORRADOR' && catalogoActual.tipo_catalogo === 'ORIGINAL' && (
                         <button
                           onClick={() => setIsBloquearModalOpen(true)}
                           className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm"
@@ -3108,9 +5843,7 @@ export default function App() {
                                       <th className="py-2.5 px-3 font-semibold text-right">Cantidad</th>
                                       <th className="py-2.5 px-3 font-semibold text-right">P.U. ($)</th>
                                       <th className="py-2.5 px-4 font-semibold text-right">Importe ($)</th>
-                                      {catalogoActual.estatus_aprobacion !== 'BLOQUEADO' && (
-                                        <th className="py-2.5 px-3 font-semibold text-center">Acción</th>
-                                      )}
+                                      <th className="py-2.5 px-3 font-semibold text-center">Acciones</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-slate-100">
@@ -3122,7 +5855,14 @@ export default function App() {
                                       return (
                                         <tr key={conc.id_concepto} className="hover:bg-slate-50/70 transition">
                                           <td className="py-2.5 px-4 font-mono font-bold text-blue-900 whitespace-nowrap">
-                                            {conc.clave_concepto}
+                                            <div className="flex items-center space-x-1.5">
+                                              <span>{conc.clave_concepto}</span>
+                                              {conc.es_extraordinario && (
+                                                <span className="px-1.5 py-0.2 bg-purple-100 text-purple-800 border border-purple-300 rounded text-[9px] font-bold">
+                                                  EXTRAORDINARIO
+                                                </span>
+                                              )}
+                                            </div>
                                           </td>
                                           <td className="py-2.5 px-4 text-slate-700 max-w-md">
                                             <div>{conc.descripcion}</div>
@@ -3135,7 +5875,7 @@ export default function App() {
                                           <td className="py-2.5 px-3 font-mono text-center font-semibold text-slate-600">
                                             {conc.unidad_medida}
                                           </td>
-                                          <td className="py-2.5 px-3 font-mono text-right text-slate-800">
+                                          <td className="py-2.5 px-3 font-mono text-right text-slate-800 font-bold">
                                             {Number(conc.cantidad).toLocaleString('es-MX', {
                                               minimumFractionDigits: 2,
                                               maximumFractionDigits: 2,
@@ -3147,17 +5887,39 @@ export default function App() {
                                           <td className="py-2.5 px-4 font-mono font-bold text-right text-emerald-800 whitespace-nowrap">
                                             {formatMoney(importeCalculado)}
                                           </td>
-                                          {catalogoActual.estatus_aprobacion !== 'BLOQUEADO' && (
-                                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                                              <button
-                                                onClick={() => handleDesactivarConcepto(conc.id_concepto)}
-                                                className="text-rose-600 hover:text-rose-800 font-semibold text-[11px] hover:underline"
-                                                title="Desactivar concepto"
-                                              >
-                                                Eliminar
-                                              </button>
-                                            </td>
-                                          )}
+                                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                            <div className="flex items-center justify-center space-x-1.5">
+                                              {/* HU-030/031: Modificar volumen permitido en Catálogos Modificados o Extraordinarios */}
+                                              {(catalogoActual.tipo_catalogo === 'MODIFICADO' ||
+                                                catalogoActual.tipo_catalogo === 'EXTRAORDINARIO' ||
+                                                catalogoActual.estatus_aprobacion !== 'BLOQUEADO') && (
+                                                <button
+                                                  onClick={() => {
+                                                    setConceptoParaModificar(conc);
+                                                    setNuevaCantidadVolumen(conc.cantidad);
+                                                    setJustificacionVolumen('');
+                                                    setIsModificarVolumenModalOpen(true);
+                                                  }}
+                                                  className="px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-semibold text-[10px] transition inline-flex items-center space-x-1 shadow-xs"
+                                                  title="Modificar volumen autorizado (HU-030/031)"
+                                                >
+                                                  <ArrowRightLeft className="w-3 h-3" />
+                                                  <span>Modificar Volumen</span>
+                                                </button>
+                                              )}
+
+                                              {/* Eliminación solo permitida en borradores no bloqueados */}
+                                              {catalogoActual.estatus_aprobacion !== 'BLOQUEADO' && (
+                                                <button
+                                                  onClick={() => handleDesactivarConcepto(conc.id_concepto)}
+                                                  className="text-rose-600 hover:text-rose-800 font-semibold text-[11px] hover:underline"
+                                                  title="Desactivar concepto"
+                                                >
+                                                  Eliminar
+                                                </button>
+                                              )}
+                                            </div>
+                                          </td>
                                         </tr>
                                       );
                                     })}
@@ -3172,12 +5934,277 @@ export default function App() {
                   </div>
                 </>
               )}
+            </>
+          )}
+
+          {/* VISTA 2: CONVENIOS RELACIONADOS CON VOLUMEN (HU-029) */}
+              {catalogoModalTab === 'CONVENIOS' && (
+                <div className="space-y-6">
+                  {/* Cabecera y botón de alta de convenio */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm flex items-center">
+                        <FileCheck className="w-4 h-4 text-emerald-600 mr-2" />
+                        Convenios Modificatorios de Volumen y Plazo (Art. 59 LOPSRM / HU-029)
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                        Registro formal de convenios para mantener actualizada la información legal y técnica de la obra.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const nextNum = `CONV-VOL-0${conveniosLista.length + 1}/${new Date().getFullYear()}`;
+                        setNumConvenio(nextNum);
+                        setDescConvenio('');
+                        setMontoConvenio('');
+                        setPctConvenio('');
+                        setDiasConvenio(0);
+                        setIsConvenioModalOpen(true);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm whitespace-nowrap self-start sm:self-auto"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>+ Registrar Convenio de Volumen (HU-029)</span>
+                    </button>
+                  </div>
+
+                  {/* Listado de Convenios */}
+                  {loadingConvenios ? (
+                    <div className="text-center py-12 text-slate-400">
+                      <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-xs">Cargando convenios relacionados...</p>
+                    </div>
+                  ) : conveniosLista.length === 0 ? (
+                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                      <FileCheck className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-slate-700">Sin convenios de volumen registrados</p>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto mt-1">
+                        Utilice el botón superior para registrar convenios modificatorios relacionados con variaciones de volumen o conceptos extraordinarios.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {conveniosLista.map((conv) => (
+                        <div
+                          key={conv.id_convenio}
+                          className="p-4 rounded-xl border border-slate-200 bg-white space-y-3 shadow-xs hover:border-slate-300 transition"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-xs font-bold px-2.5 py-1 rounded bg-slate-800 text-white">
+                              {conv.numero_convenio}
+                            </span>
+                            <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              {conv.estatus}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                              {conv.tipo_convenio}
+                            </span>
+                            <p className="text-xs text-slate-800 font-medium mt-0.5 leading-snug">
+                              {conv.descripcion}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
+                            <div>
+                              <span className="text-[10px] text-slate-400 block">Fecha Firma:</span>
+                              <strong className="text-slate-700">{conv.fecha_firma}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 block">Monto Adic.:</span>
+                              <strong className="text-emerald-700 font-mono">
+                                {formatMoney(Number(conv.monto_adicional))}
+                              </strong>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-400 block">Variación:</span>
+                              <strong className="text-blue-700">{conv.porcentaje_variacion}%</strong>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                            <span>
+                              Registrado por:{' '}
+                              <strong>
+                                {conv.usuario_registro?.nombre_completo || 'Usuario'}
+                              </strong>
+                            </span>
+                            {conv.dias_ampliacion > 0 && (
+                              <span className="font-medium text-amber-700">
+                                +{conv.dias_ampliacion} días naturales
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* VISTA 3: AUDITORÍA E HISTORIAL DE MODIFICACIONES (HU-030 A HU-033) */}
+              {catalogoModalTab === 'AUDITORIA' && (
+                <div className="space-y-4">
+                  {/* Banner de Preservación de Trazabilidad Histórica (HU-033) */}
+                  <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/70 flex items-start space-x-3 text-xs text-purple-900 shadow-xs">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <History className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold uppercase tracking-wider text-purple-950 text-xs">
+                          HU-030 a HU-033: Trazabilidad Pericial e Historial Inmutable de Modificaciones
+                        </span>
+                        <span className="font-mono text-[11px] text-purple-700">
+                          {historialLista.length} eventos registrados
+                        </span>
+                      </div>
+                      <p className="mt-1 leading-relaxed text-purple-800">
+                        Cada modificación realizada en los conceptos de obra registra de forma obligatoria el{' '}
+                        <strong>usuario responsable (HU-030)</strong>, el <strong>timestamp automático del servidor (HU-031)</strong>{' '}
+                        y conserva su <strong>trazabilidad histórica inalterable (HU-033)</strong> para fines de fiscalización y rendición de cuentas.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Barra de Filtros Periciales (HU-032) */}
+                  <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    <div className="flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        value={filtroAuditoriaTexto}
+                        onChange={(e) => setFiltroAuditoriaTexto(e.target.value)}
+                        placeholder="Buscar por concepto, clave o justificación..."
+                        className="w-full p-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      />
+                    </div>
+
+                    <div className="w-48">
+                      <select
+                        value={filtroAuditoriaEvento}
+                        onChange={(e) => setFiltroAuditoriaEvento(e.target.value)}
+                        className="w-full p-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+                      >
+                        <option value="">Todos los eventos</option>
+                        <option value="MODIFICACION_CANTIDAD">Modificaciones de Volumen</option>
+                        <option value="CONCEPTO_EXTRAORDINARIO">Conceptos Extraordinarios</option>
+                        <option value="CREACION_CATALOGO_MODIFICADO">Creación Catálogo Modificado</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setFiltroAuditoriaTexto('');
+                        setFiltroAuditoriaEvento('');
+                      }}
+                      className="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+
+                  {/* Tabla de Auditoría */}
+                  {loadingAuditoria ? (
+                    <div className="text-center py-12 text-slate-400">
+                      <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-xs">Consultando bitácora de auditoría...</p>
+                    </div>
+                  ) : historialLista.length === 0 ? (
+                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                      <History className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-slate-700">Sin modificaciones registradas</p>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                        Las modificaciones de volumen autorizadas o altas de conceptos extraordinarios aparecerán en esta bitácora inmutable.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-slate-200 overflow-hidden bg-white shadow-xs">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-100 text-slate-600 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                            <tr>
+                              <th className="py-2.5 px-4 font-semibold">Fecha y Hora (HU-031)</th>
+                              <th className="py-2.5 px-4 font-semibold">Usuario Responsable (HU-030)</th>
+                              <th className="py-2.5 px-3 font-semibold">Concepto / Clave</th>
+                              <th className="py-2.5 px-3 font-semibold">Evento / Campo</th>
+                              <th className="py-2.5 px-4 font-semibold">Valor Anterior → Nuevo</th>
+                              <th className="py-2.5 px-4 font-semibold">Justificación Técnica (HU-033)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {historialLista
+                              .filter((item) => {
+                                if (filtroAuditoriaEvento && item.evento !== filtroAuditoriaEvento) return false;
+                                if (!filtroAuditoriaTexto) return true;
+                                const txt = filtroAuditoriaTexto.toLowerCase();
+                                return (
+                                  item.justificacion.toLowerCase().includes(txt) ||
+                                  item.campo_modificado.toLowerCase().includes(txt) ||
+                                  item.concepto?.clave_concepto.toLowerCase().includes(txt) ||
+                                  item.usuario?.nombre_completo.toLowerCase().includes(txt)
+                                );
+                              })
+                              .map((item) => (
+                                <tr key={item.id_historial} className="hover:bg-slate-50/80 transition">
+                                  <td className="py-2.5 px-4 font-mono text-slate-600 whitespace-nowrap">
+                                    <div className="flex items-center space-x-1.5">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      <span>
+                                        {new Date(item.fecha_modificacion).toLocaleString('es-MX', {
+                                          dateStyle: 'short',
+                                          timeStyle: 'medium',
+                                        })}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-4 whitespace-nowrap">
+                                    <div className="font-semibold text-slate-900">
+                                      {item.usuario?.nombre_completo || `Usuario #${item.id_usuario_modifica}`}
+                                    </div>
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                      {item.usuario?.rol?.nombre_rol || 'OPERATIVO'}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono font-bold text-blue-900 whitespace-nowrap">
+                                    {item.concepto?.clave_concepto || '—'}
+                                  </td>
+                                  <td className="py-2.5 px-3 whitespace-nowrap">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                      {item.evento}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-4 font-mono text-xs">
+                                    <div className="flex items-center space-x-1">
+                                      <span className="line-through text-rose-500 bg-rose-50 px-1 rounded">
+                                        {item.valor_anterior ?? 'Nulo'}
+                                      </span>
+                                      <span className="text-slate-400">→</span>
+                                      <span className="font-bold text-emerald-700 bg-emerald-50 px-1 rounded">
+                                        {item.valor_nuevo ?? '—'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="py-2.5 px-4 text-slate-700 max-w-xs text-[11px] leading-snug">
+                                    {item.justificacion}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Footer del Modal */}
             <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-500">
               <span>
-                Sprint 3 • Catálogo Original de Obra Pública (HU-014 a HU-019 • Art. 59 LOPSRM)
+                Catálogo de Obra Pública • Art. 59 LOPSRM
               </span>
               <button
                 onClick={() => {

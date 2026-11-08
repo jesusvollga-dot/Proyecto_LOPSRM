@@ -84,6 +84,9 @@ CREATE TABLE IF NOT EXISTS catalogos (
         CHECK (estatus_aprobacion IN ('BORRADOR', 'AUTORIZADO', 'BLOQUEADO')),
     fecha_bloqueo TIMESTAMP WITH TIME ZONE,
     bloqueado_por INT REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+    id_catalogo_origen INT REFERENCES catalogos(id_catalogo) ON DELETE SET NULL,
+    id_convenio INT, -- Relación con convenios modificatorios (HU-027, HU-029)
+    descripcion TEXT,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     activo BOOLEAN NOT NULL DEFAULT TRUE
 );
@@ -137,23 +140,54 @@ CREATE TABLE IF NOT EXISTS conceptos (
     costo_directo_unitario NUMERIC(14, 2) NOT NULL CHECK (costo_directo_unitario >= 0),
     importe_costo_directo NUMERIC(14, 2) GENERATED ALWAYS AS (cantidad * costo_directo_unitario) STORED,
     porcentaje_incidencia NUMERIC(6, 4) DEFAULT 0.0000,
+    es_extraordinario BOOLEAN NOT NULL DEFAULT FALSE, -- Conceptos extraordinarios (HU-028)
+    id_concepto_origen INT REFERENCES conceptos(id_concepto) ON DELETE SET NULL, -- Trazabilidad de clonación (HU-027, HU-033)
     activo BOOLEAN NOT NULL DEFAULT TRUE, -- Borrado lógico (Soft Delete)
     CONSTRAINT uq_catalogo_clave UNIQUE (id_catalogo, clave_concepto)
 );
 
 -- ============================================================================
--- 7. TABLA: HISTORIAL DE CONCEPTOS (AUDITORÍA INMUTABLE)
--- Registro inmutable de cada alteración a conceptos (RF-09).
+-- 6.1 TABLA: CONVENIOS MODIFICATORIOS DE VOLUMEN Y TIEMPO (HU-029)
+-- Marco Legal: Art. 59 LOPSRM / Art. 99 RLOPSRM.
+-- Formalización de variaciones autorizadas de volumen y monto adicional.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS convenios (
+    id_convenio SERIAL PRIMARY KEY,
+    id_obra INT NOT NULL REFERENCES obras(id_obra) ON DELETE RESTRICT,
+    id_catalogo INT REFERENCES catalogos(id_catalogo) ON DELETE SET NULL,
+    numero_convenio VARCHAR(100) NOT NULL,
+    tipo_convenio VARCHAR(50) NOT NULL DEFAULT 'MODIFICATORIO_VOLUMEN' 
+        CHECK (tipo_convenio IN ('MODIFICATORIO_VOLUMEN', 'CONCEPTO_EXTRAORDINARIO', 'PLAZO', 'MIXTO')),
+    descripcion TEXT NOT NULL,
+    fecha_firma DATE NOT NULL,
+    monto_adicional NUMERIC(14, 2) NOT NULL DEFAULT 0.00,
+    porcentaje_variacion NUMERIC(6, 2) NOT NULL DEFAULT 0.00,
+    dias_ampliacion INT NOT NULL DEFAULT 0,
+    id_usuario_registro INT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE RESTRICT,
+    estatus VARCHAR(30) NOT NULL DEFAULT 'AUTORIZADO' 
+        CHECK (estatus IN ('BORRADOR', 'AUTORIZADO', 'CANCELADO')),
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    activo BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT uq_obra_numero_convenio UNIQUE (id_obra, numero_convenio)
+);
+
+-- ============================================================================
+-- 7. TABLA: HISTORIAL DE CONCEPTOS (AUDITORÍA INMUTABLE - HU-030 A HU-033)
+-- Registro inmutable de cada alteración a conceptos y volúmenes (RF-09).
+-- Registra usuario responsable (HU-030), timestamp automático (HU-031),
+-- consulta pericial (HU-032) y preservación inalterable sin borrado (HU-033).
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS historial_conceptos (
     id_historial SERIAL PRIMARY KEY,
     id_concepto INT NOT NULL REFERENCES conceptos(id_concepto) ON DELETE RESTRICT,
+    id_catalogo INT REFERENCES catalogos(id_catalogo) ON DELETE SET NULL,
     id_usuario_modifica INT NOT NULL REFERENCES usuarios(id_usuario) ON DELETE RESTRICT,
     fecha_modificacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     campo_modificado VARCHAR(50) NOT NULL,
     valor_anterior TEXT,
     valor_nuevo TEXT,
-    justificacion TEXT NOT NULL
+    justificacion TEXT NOT NULL,
+    evento VARCHAR(50) DEFAULT 'MODIFICACION_CANTIDAD'
 );
 
 -- ============================================================================
@@ -177,6 +211,14 @@ CREATE TABLE IF NOT EXISTS reportes_diarios (
     avance_fisico_acumulado NUMERIC(6, 2) NOT NULL 
         CHECK (avance_fisico_acumulado >= 0.00 AND avance_fisico_acumulado <= 100.00),
     fecha_estimada_fin DATE,
+    actividades_realizadas TEXT,
+    temperatura_celsius NUMERIC(4, 1),
+    observaciones_clima TEXT,
+    condiciones_seguridad TEXT,
+    checklist_seguridad JSONB,
+    observaciones_seguridad TEXT,
+    checklist_epp JSONB,
+    observaciones_epp TEXT,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT uq_obra_fecha_reporte UNIQUE (id_obra, fecha_reporte)
