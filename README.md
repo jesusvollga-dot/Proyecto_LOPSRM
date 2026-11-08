@@ -32,4 +32,47 @@ Este repositorio contiene la estructura técnica, legal y operativa estandarizad
 3. **Superintendente de Construcción (por el contratista):** Profesional técnico facultado con cédula profesional, con experiencia afín comprobable y poder amplio para tomar decisiones en sitio (Art. 115 RLOPSRM).
 4. **Órgano Interno de Control / Auditoría:** Supervisión normativa del uso de recursos públicos federales y cumplimiento de los plazos reglamentarios.
 
-Consulta las guías individuales  en cada una de las 5 carpetas principales para instrucciones detalladas, checklists de validación y formatos de cálculo.
+Consulta las guías individuales en cada una de las 5 carpetas principales para instrucciones detalladas, checklists de validación y formatos de cálculo.
+
+---
+
+## 🚀 Estado de Desarrollo de la Plataforma (Metodología SCRUM)
+
+El sistema de software implementa un ciclo de 10 Sprints bajo el marco de la LOPSRM / RLOPSRM. **Actualmente el proyecto abarca hasta el Sprint 6 completado:**
+
+| Sprint | Épica / Alcance | Historias de Usuario | Estatus | Entregables y Pruebas |
+| :--- | :--- | :--- | :---: | :--- |
+| **Sprint 1** | **Autenticación y Seguridad RBAC** | HU-001 a HU-006 | ✅ Concluido | Módulo Auth/Users, 5 roles normativos, JWT, Guardias RBAC. |
+| **Sprint 2** | **Gestión de Obras y Cuadrillas** | HU-007 a HU-013 | ✅ Concluido | Registro de obras, asignación de superintendente y supervisor, validaciones de anticipo (máx 30% Art. 50 LOPSRM) y fechas. |
+| **Sprint 3** | **Catálogo Original e Inmutabilidad** | HU-014 a HU-019 | ✅ Concluido | Partidas, subpartidas, conceptos con clave única, cálculo automático de importes, bloqueo formal e inmutabilidad legal (Art. 59 LOPSRM). |
+| **Sprint 4** | **Estimaciones y Generadores** | HU-020 a HU-026 | ✅ Concluido | Volúmenes de obra, amortización de anticipo y 5 al millar. |
+| **Sprint 5** | **Catálogos Modificados, Extraordinarios y Auditoría** | HU-027 a HU-033 | ✅ Concluido | Catálogo modificado versionado, conceptos extraordinarios, convenios de volumen (Art. 59 LOPSRM), trazabilidad de usuario/fecha y bitácora pericial inmutable. |
+| **Sprint 6** | **Reporte Diario de Supervisión y Bitácora** | HU-034 a HU-040 | ✅ Concluido | Bitácora de obra (Arts. 122 a 126 RLOPSRM), condiciones climáticas, checklists de seguridad y EPP, desglose de cuadrillas y maquinaria, evidencia fotográfica (máx 6) y avance físico acumulado no decreciente (69/69 pruebas backend y 17/17 pruebas frontend aprobadas). |
+| **Sprint 7** | **Estimaciones de Ajuste y Penalizaciones** | HU-041 en adelante | ⏳ Siguiente | Estimaciones extraordinarias, retenciones y deductivas. |
+
+### 🛠️ Puesta en Marcha y Ejecución de Pruebas
+
+#### Backend (NestJS + TypeORM + PostgreSQL)
+```bash
+cd backend
+npm install
+npm run test     # Ejecución de 69 pruebas unitarias automatizadas (Vitest)
+npm run build    # Compilación de producción
+npm run start    # Inicio del servidor API en http://localhost:3000
+```
+
+#### Frontend (React 19 + Vite + Tailwind CSS)
+```bash
+cd frontend
+npm install
+npm run test     # Ejecución de 17 pruebas de integración frontend (Vitest + RTL)
+npm run build    # Compilación de la SPA
+npm run dev      # Servidor de desarrollo en http://localhost:5173
+```
+
+Documentación completa y formal de cada sprint disponible en los directorios:
+- Sprint 1: [`01_Documentacion_Sprint_1/DOCUMENTO_ENTREGA_SPRINT_1.md`](file:///home/bby_jss/PROYECTO_LOPSRM/01_Documentacion_Sprint_1/DOCUMENTO_ENTREGA_SPRINT_1.md)
+- Sprint 3: [`03_Documentacion_Sprint_3/DOCUMENTO_ENTREGA_SPRINT_3.md`](file:///home/bby_jss/PROYECTO_LOPSRM/03_Documentacion_Sprint_3/DOCUMENTO_ENTREGA_SPRINT_3.md)
+- Sprint 5: [`05_Documentacion_Sprint_5/DOCUMENTO_ENTREGA_SPRINT_5.md`](file:///home/bby_jss/PROYECTO_LOPSRM/05_Documentacion_Sprint_5/DOCUMENTO_ENTREGA_SPRINT_5.md)
+- Sprint 6: [`06_Documentacion_Sprint_6/DOCUMENTO_ENTREGA_SPRINT_6.md`](file:///home/bby_jss/PROYECTO_LOPSRM/06_Documentacion_Sprint_6/DOCUMENTO_ENTREGA_SPRINT_6.md)
+
