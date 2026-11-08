@@ -7,7 +7,13 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { extname, join } from 'node:path';
+import * as fs from 'node:fs';
 import {
   ApiTags,
   ApiOperation,
@@ -30,6 +36,70 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ReportesController {
   constructor(private readonly reportesService: ReportesService) {}
+
+  @Post('upload')
+  @Roles(
+    RoleEnum.SUPERVISOR,
+    RoleEnum.ADMINISTRADOR,
+    RoleEnum.RESIDENTE,
+    RoleEnum.SUPERINTENDENTE,
+  )
+  @UseInterceptors(
+    FileInterceptor('archivo', {
+      limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB
+    }),
+  )
+  @ApiOperation({
+    summary: 'Subir evidencia fotográfica, reporte PDF o documento Word',
+    description:
+      'Permite subir archivos en formatos de imagen (JPG, PNG, WEBP, GIF), documentos PDF y archivos Word (.docx, .doc) para asociar a los reportes de supervisión.',
+  })
+  async subirEvidencia(@UploadedFile() file: any) {
+    if (!file) {
+      throw new BadRequestException('No se ha proporcionado ningún archivo para subir.');
+    }
+
+    const ext = extname(file.originalname).toLowerCase();
+    const extensionesPermitidas = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.gif',
+      '.bmp',
+      '.pdf',
+      '.docx',
+      '.doc',
+    ];
+
+    if (!extensionesPermitidas.includes(ext)) {
+      throw new BadRequestException(
+        `Formato no permitido (${ext}). Se admiten imágenes (JPG, PNG, WEBP, GIF), documentos PDF y Word (.docx, .doc).`,
+      );
+    }
+
+    const uploadsDir = join(process.cwd(), 'uploads', 'evidencias');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const nombreSeguro = `evidencia_${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+    const rutaDestino = join(uploadsDir, nombreSeguro);
+
+    fs.writeFileSync(rutaDestino, file.buffer);
+
+    let tipo = 'image';
+    if (ext === '.pdf') tipo = 'pdf';
+    else if (ext === '.docx' || ext === '.doc') tipo = 'doc';
+
+    return {
+      url_archivo: `/uploads/evidencias/${nombreSeguro}`,
+      nombre_original: file.originalname,
+      tipo_archivo: tipo,
+      mimetype: file.mimetype,
+      tamano: file.size,
+    };
+  }
 
   @Post()
   @Roles(RoleEnum.SUPERVISOR, RoleEnum.ADMINISTRADOR)

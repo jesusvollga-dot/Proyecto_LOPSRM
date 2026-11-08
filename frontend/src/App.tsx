@@ -38,6 +38,8 @@ import {
   ClipboardList,
   Eye,
   Search,
+  UploadCloud,
+  File,
 } from 'lucide-react';
 
 interface Role {
@@ -254,7 +256,16 @@ interface FotoReporteItem {
   numero_foto: number;
   url_archivo: string;
   descripcion_foto?: string;
+  nombre_archivo?: string;
+  tipo_archivo?: 'image' | 'pdf' | 'doc';
 }
+
+const getTipoArchivoFromUrl = (url: string): 'image' | 'pdf' | 'doc' => {
+  const u = (url || '').toLowerCase();
+  if (u.endsWith('.pdf') || u.includes('.pdf?')) return 'pdf';
+  if (u.endsWith('.docx') || u.endsWith('.doc') || u.includes('.docx?') || u.includes('.doc?')) return 'doc';
+  return 'image';
+};
 
 interface IncidenciaReporteItem {
   id_incidencia?: number;
@@ -512,10 +523,12 @@ export default function App() {
   const [nuevoEstatusMaquinaria, setNuevoEstatusMaquinaria] = useState('Operativa');
   const [nuevaActividadMaquinaria, setNuevaActividadMaquinaria] = useState('');
 
-  // Fotos (RF-13)
+  // Fotos y Evidencias Documentales (RF-13)
   const [reporteFotos, setReporteFotos] = useState<FotoReporteItem[]>([]);
   const [nuevaFotoUrl, setNuevaFotoUrl] = useState('');
   const [nuevaFotoDesc, setNuevaFotoDesc] = useState('');
+  const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+  const [modoUrlManual, setModoUrlManual] = useState(false);
 
   // Logout handler
   const handleLogout = useCallback(() => {
@@ -1667,15 +1680,78 @@ export default function App() {
     setReporteMaquinaria((prev) => prev.filter((_, idx) => idx !== index));
   };
 
-  // Manejadores de fotografías (RF-13)
+  // Manejadores de fotografías y evidencias documentales (RF-13)
+  const handleSubirArchivoEvidencia = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !token) return;
+
+    if (reporteFotos.length + files.length > 6) {
+      setBitacoraMsg({
+        type: 'error',
+        text: `Normativa RF-13: Se permite un máximo de 6 evidencias por reporte diario. Actualmente tiene ${reporteFotos.length} y seleccionó ${files.length}.`,
+      });
+      return;
+    }
+
+    setSubiendoArchivo(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('archivo', file);
+
+        const res = await fetch('/api/v1/reportes/upload', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setReporteFotos((prev) => {
+            if (prev.length >= 6) return prev;
+            return [
+              ...prev,
+              {
+                numero_foto: prev.length + 1,
+                url_archivo: data.url_archivo,
+                descripcion_foto: file.name.replace(/\.[^/.]+$/, ''),
+                nombre_archivo: file.name,
+                tipo_archivo: data.tipo_archivo || getTipoArchivoFromUrl(data.url_archivo),
+              },
+            ];
+          });
+        } else {
+          const err = await res.json().catch(() => ({}));
+          setBitacoraMsg({
+            type: 'error',
+            text: err.message || `Error al subir el archivo ${file.name}.`,
+          });
+        }
+      }
+    } catch {
+      setBitacoraMsg({
+        type: 'error',
+        text: 'Error de conexión al cargar la evidencia al servidor.',
+      });
+    } finally {
+      setSubiendoArchivo(false);
+      e.target.value = '';
+    }
+  };
+
   const handleAgregarFoto = () => {
     if (!nuevaFotoUrl.trim() || reporteFotos.length >= 6) return;
+    const tipo = getTipoArchivoFromUrl(nuevaFotoUrl.trim());
     setReporteFotos((prev) => [
       ...prev,
       {
         numero_foto: prev.length + 1,
         url_archivo: nuevaFotoUrl.trim(),
         descripcion_foto: nuevaFotoDesc.trim() || `Evidencia fotográfica ${prev.length + 1}`,
+        tipo_archivo: tipo,
       },
     ]);
     setNuevaFotoUrl('');
@@ -5059,61 +5135,155 @@ export default function App() {
                 </div>
               </div>
 
-              {/* SECCIÓN 7: EVIDENCIA FOTOGRÁFICA (RF-13 - MÁXIMO 6 FOTOGRAFÍAS) */}
+              {/* SECCIÓN 7: EVIDENCIA FOTOGRÁFICA Y DOCUMENTAL (RF-13 - MÁXIMO 6 ARCHIVOS) */}
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px] flex items-center">
-                    <Eye className="w-4 h-4 mr-1.5 text-indigo-600" />
-                    7. Evidencia Fotográfica de la Jornada (RF-13 - Máx. 6 Fotos)
-                  </h4>
-                  <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                    {reporteFotos.length} / 6 fotos
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center space-x-1.5">
+                    <Eye className="w-4 h-4 text-indigo-600" />
+                    <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                      7. Evidencia Fotográfica y Documental (Máx. 6 Archivos)
+                    </h4>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-200">
+                      {reporteFotos.length} / 6 evidencias
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setModoUrlManual(!modoUrlManual)}
+                      className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline"
+                    >
+                      {modoUrlManual ? 'Subir Archivo Local' : 'Ingresar URL Manual'}
+                    </button>
+                  </div>
                 </div>
 
+                {/* Lista de Evidencias Cargadas */}
                 {reporteFotos.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
-                    {reporteFotos.map((foto, idx) => (
-                      <div key={idx} className="p-2 rounded border border-slate-100 flex items-center justify-between text-xs">
-                        <div className="truncate mr-2">
-                          <strong className="text-slate-800">Foto {foto.numero_foto}:</strong>{' '}
-                          <span className="text-slate-500 truncate">{foto.descripcion_foto}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleEliminarFoto(idx)}
-                          className="text-rose-500 hover:text-rose-700 font-semibold text-[11px]"
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 bg-white p-3 rounded-xl border border-slate-200">
+                    {reporteFotos.map((foto, idx) => {
+                      const tipo = foto.tipo_archivo || getTipoArchivoFromUrl(foto.url_archivo);
+                      return (
+                        <div
+                          key={idx}
+                          className="relative group p-2.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between space-y-2 text-xs"
                         >
-                          ✕
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-start space-x-2">
+                            {tipo === 'image' ? (
+                              <div className="w-14 h-14 rounded-md overflow-hidden bg-slate-200 border border-slate-300 flex-shrink-0 flex items-center justify-center">
+                                <img
+                                  src={foto.url_archivo}
+                                  alt={foto.descripcion_foto || `Evidencia ${foto.numero_foto}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ) : tipo === 'pdf' ? (
+                              <div className="w-14 h-14 rounded-md bg-rose-50 border border-rose-200 flex-shrink-0 flex flex-col items-center justify-center text-rose-600">
+                                <FileText className="w-6 h-6" />
+                                <span className="text-[9px] font-bold font-mono uppercase mt-0.5">PDF</span>
+                              </div>
+                            ) : (
+                              <div className="w-14 h-14 rounded-md bg-blue-50 border border-blue-200 flex-shrink-0 flex flex-col items-center justify-center text-blue-600">
+                                <File className="w-6 h-6" />
+                                <span className="text-[9px] font-bold font-mono uppercase mt-0.5">DOCX</span>
+                              </div>
+                            )}
+
+                            <div className="flex-1 min-w-0">
+                              <span className="font-bold text-slate-800 text-[11px] block truncate">
+                                #{foto.numero_foto}: {foto.nombre_archivo || `Archivo ${foto.numero_foto}`}
+                              </span>
+                              <input
+                                type="text"
+                                value={foto.descripcion_foto || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setReporteFotos((prev) =>
+                                    prev.map((f, i) =>
+                                      i === idx ? { ...f, descripcion_foto: val } : f,
+                                    ),
+                                  );
+                                }}
+                                placeholder="Pie de evidencia / descripción"
+                                className="w-full mt-1 p-1 text-[11px] rounded border border-slate-200 bg-white outline-none focus:ring-1 focus:ring-indigo-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
+                            <a
+                              href={foto.url_archivo}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold inline-flex items-center space-x-1"
+                            >
+                              <span>Ver Archivo</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarFoto(idx)}
+                              className="text-rose-500 hover:text-rose-700 text-[11px] font-semibold"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
+                {/* Zona de Carga de Archivos */}
                 {reporteFotos.length < 6 && (
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      value={nuevaFotoUrl}
-                      onChange={(e) => setNuevaFotoUrl(e.target.value)}
-                      placeholder="URL de la fotografía (ej. https://... o data:...)"
-                      className="flex-1 p-2 rounded-lg border border-slate-300 bg-white text-xs outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <input
-                      type="text"
-                      value={nuevaFotoDesc}
-                      onChange={(e) => setNuevaFotoDesc(e.target.value)}
-                      placeholder="Descripción de la foto"
-                      className="sm:w-48 p-2 rounded-lg border border-slate-300 bg-white text-xs outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAgregarFoto}
-                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs"
-                    >
-                      + Foto
-                    </button>
+                  <div>
+                    {!modoUrlManual ? (
+                      <div className="relative border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-white hover:bg-indigo-50/30 transition rounded-xl p-4 text-center cursor-pointer">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,.pdf,.docx,.doc"
+                          onChange={handleSubirArchivoEvidencia}
+                          disabled={subiendoArchivo}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="flex flex-col items-center justify-center space-y-1">
+                          <UploadCloud className="w-7 h-7 text-indigo-500" />
+                          <span className="font-bold text-slate-800 text-xs">
+                            {subiendoArchivo ? 'Subiendo archivo al servidor...' : 'Haz clic o arrastra tus archivos aquí'}
+                          </span>
+                          <p className="text-[10px] text-slate-500 max-w-md">
+                            Soporta <strong>Imágenes (JPG, PNG, WEBP, GIF)</strong>, <strong>Documentos PDF</strong> y <strong>Archivos Word (.docx, .doc)</strong> hasta 30MB.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-2 bg-white p-3 rounded-xl border border-slate-200">
+                        <input
+                          type="text"
+                          value={nuevaFotoUrl}
+                          onChange={(e) => setNuevaFotoUrl(e.target.value)}
+                          placeholder="URL directa de la evidencia (ej. https://...)"
+                          className="flex-1 p-2 rounded-lg border border-slate-300 bg-white text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <input
+                          type="text"
+                          value={nuevaFotoDesc}
+                          onChange={(e) => setNuevaFotoDesc(e.target.value)}
+                          placeholder="Descripción / pie de foto"
+                          className="sm:w-56 p-2 rounded-lg border border-slate-300 bg-white text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAgregarFoto}
+                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-xs shadow-xs"
+                        >
+                          + Agregar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -5289,6 +5459,80 @@ export default function App() {
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Evidencia Fotográfica y Documental (RF-13) */}
+            {reporteSeleccionadoDetalle.fotos &&
+              reporteSeleccionadoDetalle.fotos.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="font-bold text-slate-800 block uppercase tracking-wider text-[10px]">
+                    Evidencia Fotográfica y Documental ({reporteSeleccionadoDetalle.fotos.length} archivos):
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    {reporteSeleccionadoDetalle.fotos.map((f, idx) => {
+                      const tipo = f.tipo_archivo || getTipoArchivoFromUrl(f.url_archivo);
+                      return (
+                        <div
+                          key={idx}
+                          className="bg-white p-2.5 rounded-lg border border-slate-200 flex flex-col justify-between space-y-2 text-xs shadow-2xs"
+                        >
+                          <div className="flex items-center space-x-2">
+                            {tipo === 'image' ? (
+                              <a
+                                href={f.url_archivo}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-12 h-12 rounded bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200 block"
+                              >
+                                <img
+                                  src={f.url_archivo}
+                                  alt={f.descripcion_foto || `Foto ${f.numero_foto}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </a>
+                            ) : tipo === 'pdf' ? (
+                              <a
+                                href={f.url_archivo}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-12 h-12 rounded bg-rose-50 border border-rose-200 flex-shrink-0 flex flex-col items-center justify-center text-rose-600 hover:bg-rose-100 transition"
+                              >
+                                <FileText className="w-5 h-5" />
+                                <span className="text-[8px] font-bold uppercase mt-0.5 font-mono">PDF</span>
+                              </a>
+                            ) : (
+                              <a
+                                href={f.url_archivo}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="w-12 h-12 rounded bg-blue-50 border border-blue-200 flex-shrink-0 flex flex-col items-center justify-center text-blue-600 hover:bg-blue-100 transition"
+                              >
+                                <File className="w-5 h-5" />
+                                <span className="text-[8px] font-bold uppercase mt-0.5 font-mono">DOC</span>
+                              </a>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="font-bold text-slate-800 text-[11px] block truncate">
+                                Evidencia #{f.numero_foto}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block truncate">
+                                {f.descripcion_foto || 'Sin descripción'}
+                              </span>
+                            </div>
+                          </div>
+                          <a
+                            href={f.url_archivo}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[10px] text-indigo-600 hover:underline font-semibold block text-center pt-1 border-t border-slate-100"
+                          >
+                            Abrir / Descargar
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
