@@ -54,6 +54,19 @@ export class Catalogo {
   @JoinColumn({ name: 'bloqueado_por' })
   usuario_bloqueo: Relation<User> | null;
 
+  @Column({ name: 'id_catalogo_origen', type: 'int', nullable: true })
+  id_catalogo_origen: number | null;
+
+  @ManyToOne('Catalogo', { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'id_catalogo_origen' })
+  catalogo_origen: Relation<Catalogo> | null;
+
+  @Column({ name: 'id_convenio', type: 'int', nullable: true })
+  id_convenio: number | null;
+
+  @Column({ name: 'descripcion', type: 'text', nullable: true })
+  descripcion: string | null;
+
   @CreateDateColumn({ name: 'fecha_creacion', type: 'timestamptz' })
   fecha_creacion: Date;
 

@@ -84,6 +84,12 @@ export class Concepto {
   })
   porcentaje_incidencia: number;
 
+  @Column({ name: 'es_extraordinario', type: 'boolean', default: false })
+  es_extraordinario: boolean;
+
+  @Column({ name: 'id_concepto_origen', type: 'int', nullable: true })
+  id_concepto_origen: number | null;
+
   @Column({ name: 'activo', type: 'boolean', default: true })
   activo: boolean;
 }
